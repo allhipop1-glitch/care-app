@@ -1,9 +1,9 @@
 import { Tabs } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Platform } from "react-native";
 
 import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { Platform } from "react-native";
 import { useColors } from "@/hooks/use-colors";
 
 export default function TabLayout() {
@@ -15,7 +15,8 @@ export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: colors.tint,
+        tabBarActiveTintColor: "#3182CE",
+        tabBarInactiveTintColor: "#A0AEC0",
         headerShown: false,
         tabBarButton: HapticTab,
         tabBarStyle: {
@@ -26,13 +27,45 @@ export default function TabLayout() {
           borderTopColor: colors.border,
           borderTopWidth: 0.5,
         },
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: "600",
+        },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: "홈",
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="house.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="care"
+        options={{
+          title: "사고처리",
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="car.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="feed"
+        options={{
+          title: "커뮤니티",
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="play.rectangle.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="map"
+        options={{
+          title: "내 주변",
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="map.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="my"
+        options={{
+          title: "마이페이지",
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="person.fill" color={color} />,
         }}
       />
     </Tabs>

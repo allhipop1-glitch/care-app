@@ -14,10 +14,43 @@ type IconSymbolName = keyof typeof MAPPING;
  * - see SF Symbols in the [SF Symbols](https://developer.apple.com/sf-symbols/) app.
  */
 const MAPPING = {
+  // Default
   "house.fill": "home",
   "paperplane.fill": "send",
   "chevron.left.forwardslash.chevron.right": "code",
   "chevron.right": "chevron-right",
+  // App tabs
+  "car.fill": "directions-car",
+  "play.rectangle.fill": "play-circle-filled",
+  "map.fill": "map",
+  "person.fill": "person",
+  // UI icons
+  "bell.fill": "notifications",
+  "exclamationmark.triangle.fill": "warning",
+  "checkmark.circle.fill": "check-circle",
+  "xmark.circle.fill": "cancel",
+  "location.fill": "location-on",
+  "phone.fill": "phone",
+  "star.fill": "star",
+  "clock.fill": "access-time",
+  "doc.text.fill": "description",
+  "camera.fill": "camera-alt",
+  "photo.fill": "photo",
+  "chevron.left": "chevron-left",
+  "info.circle.fill": "info",
+  "shield.fill": "security",
+  "wrench.fill": "build",
+  "cross.fill": "local-hospital",
+  "scale.3d": "balance",
+  "car.2.fill": "local-taxi",
+  "arrow.right": "arrow-forward",
+  "plus.circle.fill": "add-circle",
+  "trash.fill": "delete",
+  "pencil": "edit",
+  "gear": "settings",
+  "magnifyingglass": "search",
+  "heart.fill": "favorite",
+  "flame.fill": "local-fire-department",
 } as IconMapping;
 
 /**
