@@ -1,11 +1,21 @@
-import { ScrollView, Text, View, Pressable, StyleSheet, TextInput, Alert } from "react-native";
+import { ScrollView, Text, View, Pressable, StyleSheet, TextInput, Alert, Linking, Platform } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
-import { Platform } from "react-native";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+
+const INSURANCE_COMPANIES = [
+  { id: "samsung", name: "삼성화재", tel: "1588-5114", color: "#1A56DB", logo: "🔵" },
+  { id: "hyundai", name: "현대해상", tel: "1588-5656", color: "#E53E3E", logo: "🔴" },
+  { id: "kb", name: "KB손해보험", tel: "1544-0114", color: "#F59E0B", logo: "🟡" },
+  { id: "db", name: "DB손해보험", tel: "1588-0100", color: "#38A169", logo: "🟢" },
+  { id: "meritz", name: "메리츠화재", tel: "1566-7711", color: "#805AD5", logo: "🟣" },
+  { id: "lotte", name: "롯데손해보험", tel: "1588-3344", color: "#DD6B20", logo: "🟠" },
+  { id: "hanwha", name: "한화손해보험", tel: "1566-8000", color: "#3182CE", logo: "🔷" },
+  { id: "other", name: "기타 보험사", tel: "해당 보험사 연락", color: "#718096", logo: "📞" },
+];
 
 type Step = "type" | "location" | "evidence" | "match";
 
@@ -113,6 +123,9 @@ export default function AccidentReportScreen() {
   const [completedEvidence, setCompletedEvidence] = useState<number[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedPartner, setSelectedPartner] = useState<string | null>(null);
+  const [policeReported, setPoliceReported] = useState(false);
+  const [selectedInsurance, setSelectedInsurance] = useState<string | null>(null);
+  const [insuranceCalled, setInsuranceCalled] = useState(false);
 
   const handleBack = () => {
     if (currentStep === "type") {
@@ -336,7 +349,7 @@ export default function AccidentReportScreen() {
                     )}
                   </View>
 
-                  {isActive && !isCompleted && (
+                  {isActive && !isCompleted && ev.step !== 4 && (
                     <View style={styles.evidenceTips}>
                       {ev.tips.map((tip, i) => (
                         <View key={i} style={styles.evidenceTipRow}>
@@ -354,6 +367,139 @@ export default function AccidentReportScreen() {
                       >
                         <IconSymbol name="checkmark.circle.fill" size={16} color="#FFFFFF" />
                         <Text style={styles.evidenceCompleteBtnText}>완료 체크</Text>
+                      </Pressable>
+                    </View>
+                  )}
+
+                  {/* 4단계 전용 확장 UI: 경찰 신고 + 보험사 접수 */}
+                  {isActive && !isCompleted && ev.step === 4 && (
+                    <View style={styles.reportSection}>
+                      {/* 112 신고 버튼 */}
+                      <View style={styles.reportBlock}>
+                        <View style={styles.reportBlockHeader}>
+                          <View style={[styles.reportStepBadge, { backgroundColor: policeReported ? "#38A169" : "#E53E3E" }]}>
+                            <Text style={styles.reportStepBadgeText}>{policeReported ? "✓" : "1"}</Text>
+                          </View>
+                          <Text style={styles.reportBlockTitle}>경찰 신고 (112)</Text>
+                          {policeReported && <Text style={styles.reportDoneLabel}>신고 완료</Text>}
+                        </View>
+                        <Text style={styles.reportBlockDesc}>부상자가 있거나 상대방이 도주한 경우 반드시 신고하세요. 신고 접수 번호를 보험사에 전달해야 합니다.</Text>
+                        <View style={styles.reportBtnRow}>
+                          <Pressable
+                            style={({ pressed }) => [styles.callBtn, { backgroundColor: "#E53E3E" }, pressed && { opacity: 0.85 }]}
+                            onPress={() => {
+                              if (Platform.OS !== "web") {
+                                Linking.openURL("tel:112");
+                              } else {
+                                Alert.alert("112 신고", "112에 전화를 연결합니다.");
+                              }
+                            }}
+                          >
+                            <Text style={styles.callBtnIcon}>📞</Text>
+                            <Text style={styles.callBtnText}>112 신고 전화</Text>
+                          </Pressable>
+                          <Pressable
+                            style={({ pressed }) => [
+                              styles.doneBtn,
+                              policeReported && { backgroundColor: "#38A169" },
+                              pressed && { opacity: 0.85 },
+                            ]}
+                            onPress={() => setPoliceReported(true)}
+                          >
+                            <Text style={[styles.doneBtnText, policeReported && { color: "#FFFFFF" }]}>
+                              {policeReported ? "✓ 완료" : "신고 완료"}
+                            </Text>
+                          </Pressable>
+                        </View>
+                      </View>
+
+                      {/* 보험사 접수 */}
+                      <View style={styles.reportBlock}>
+                        <View style={styles.reportBlockHeader}>
+                          <View style={[styles.reportStepBadge, { backgroundColor: insuranceCalled ? "#38A169" : "#DD6B20" }]}>
+                            <Text style={styles.reportStepBadgeText}>{insuranceCalled ? "✓" : "2"}</Text>
+                          </View>
+                          <Text style={styles.reportBlockTitle}>보험사 사고 접수</Text>
+                          {insuranceCalled && <Text style={styles.reportDoneLabel}>접수 완료</Text>}
+                        </View>
+                        <Text style={styles.reportBlockDesc}>내 보험사를 선택하고 사고 접수 전화를 하세요. 접수 즉시 출동 서비스가 시작됩니다.</Text>
+
+                        {/* 보험사 선택 그리드 */}
+                        <View style={styles.insuranceGrid}>
+                          {INSURANCE_COMPANIES.map((ins) => (
+                            <Pressable
+                              key={ins.id}
+                              style={({ pressed }) => [
+                                styles.insuranceCard,
+                                selectedInsurance === ins.id && { borderColor: ins.color, borderWidth: 2, backgroundColor: ins.color + "10" },
+                                pressed && { opacity: 0.8 },
+                              ]}
+                              onPress={() => setSelectedInsurance(ins.id)}
+                            >
+                              <Text style={styles.insuranceLogo}>{ins.logo}</Text>
+                              <Text style={[styles.insuranceName, selectedInsurance === ins.id && { color: ins.color, fontWeight: "700" }]}>
+                                {ins.name}
+                              </Text>
+                            </Pressable>
+                          ))}
+                        </View>
+
+                        {selectedInsurance && (() => {
+                          const ins = INSURANCE_COMPANIES.find(i => i.id === selectedInsurance)!;
+                          return (
+                            <View style={styles.insuranceCallBox}>
+                              <Text style={styles.insuranceCallNum}>{ins.tel}</Text>
+                              <View style={styles.reportBtnRow}>
+                                <Pressable
+                                  style={({ pressed }) => [styles.callBtn, { backgroundColor: ins.color, flex: 1 }, pressed && { opacity: 0.85 }]}
+                                  onPress={() => {
+                                    if (Platform.OS !== "web") {
+                                      Linking.openURL(`tel:${ins.tel.replace(/-/g, "")}`);
+                                    } else {
+                                      Alert.alert("보험사 접수", `${ins.name} ${ins.tel}에 연결합니다.`);
+                                    }
+                                  }}
+                                >
+                                  <Text style={styles.callBtnIcon}>📞</Text>
+                                  <Text style={styles.callBtnText}>{ins.name} 접수 전화</Text>
+                                </Pressable>
+                                <Pressable
+                                  style={({ pressed }) => [
+                                    styles.doneBtn,
+                                    insuranceCalled && { backgroundColor: "#38A169" },
+                                    pressed && { opacity: 0.85 },
+                                  ]}
+                                  onPress={() => setInsuranceCalled(true)}
+                                >
+                                  <Text style={[styles.doneBtnText, insuranceCalled && { color: "#FFFFFF" }]}>
+                                    {insuranceCalled ? "✓ 완료" : "접수 완료"}
+                                  </Text>
+                                </Pressable>
+                              </View>
+                            </View>
+                          );
+                        })()}
+                      </View>
+
+                      {/* 완료 버튼 */}
+                      <Pressable
+                        style={({ pressed }) => [
+                          styles.evidenceCompleteBtn,
+                          { backgroundColor: (policeReported || insuranceCalled) ? "#DD6B20" : "#CBD5E0" },
+                          pressed && { opacity: 0.85 },
+                        ]}
+                        onPress={() => {
+                          if (!policeReported && !insuranceCalled) {
+                            Alert.alert("확인", "112 신고 또는 보험사 접수 중 하나는 완료해야 합니다.");
+                            return;
+                          }
+                          handleCompleteEvidence(idx);
+                        }}
+                      >
+                        <IconSymbol name="checkmark.circle.fill" size={16} color="#FFFFFF" />
+                        <Text style={styles.evidenceCompleteBtnText}>
+                          {policeReported && insuranceCalled ? "신고 & 접수 완료" : policeReported ? "신고 완료 (보험 접수 권장)" : "접수 완료 (신고 권장)"}
+                        </Text>
                       </Pressable>
                     </View>
                   )}
@@ -978,5 +1124,133 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#718096",
     fontWeight: "600",
+  },
+  reportSection: {
+    marginTop: 14,
+    gap: 12,
+  },
+  reportBlock: {
+    backgroundColor: "#F7FAFC",
+    borderRadius: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    gap: 8,
+  },
+  reportBlockHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  reportStepBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  reportStepBadgeText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
+  reportBlockTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#1A2B4C",
+    flex: 1,
+  },
+  reportDoneLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#38A169",
+    backgroundColor: "#F0FFF4",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  reportBlockDesc: {
+    fontSize: 13,
+    color: "#718096",
+    lineHeight: 20,
+  },
+  reportBtnRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 4,
+  },
+  callBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 10,
+  },
+  callBtnIcon: {
+    fontSize: 16,
+  },
+  callBtnText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  doneBtn: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: "#CBD5E0",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+  },
+  doneBtnText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#4A5568",
+  },
+  insuranceGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginTop: 8,
+  },
+  insuranceCard: {
+    width: "22%",
+    alignItems: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 4,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
+    backgroundColor: "#FFFFFF",
+    gap: 4,
+  },
+  insuranceLogo: {
+    fontSize: 20,
+  },
+  insuranceName: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#4A5568",
+    textAlign: "center",
+  },
+  insuranceCallBox: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    marginTop: 8,
+    gap: 8,
+  },
+  insuranceCallNum: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#1A2B4C",
+    textAlign: "center",
+    letterSpacing: 1,
   },
 });
