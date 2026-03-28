@@ -9,6 +9,57 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 
 type Step = "type" | "location" | "evidence" | "match";
 
+const EXPERT_CATEGORIES = [
+  {
+    id: "workshop",
+    label: "공업사",
+    icon: "wrench.fill" as const,
+    color: "#3182CE",
+    desc: "차량 수리 · 파손 견적",
+    partners: [
+      { name: "강남 최고공업사", rating: 4.9, reviews: 312, distance: "0.8km", eta: "15분 내 연락", badge: "사고케어 인증" },
+      { name: "서초 KG모터스", rating: 4.7, reviews: 198, distance: "1.2km", eta: "20분 내 연락", badge: "빠른응답" },
+      { name: "역삼 현대직영", rating: 4.8, reviews: 445, distance: "2.1km", eta: "30분 내 연락", badge: "" },
+    ],
+  },
+  {
+    id: "hospital",
+    label: "병원",
+    icon: "cross.fill" as const,
+    color: "#E53E3E",
+    desc: "부상 치료 · 진단서 발급",
+    partners: [
+      { name: "강남세브란스 정형외과", rating: 4.8, reviews: 521, distance: "1.5km", eta: "예약 가능", badge: "교통사고 전문" },
+      { name: "선릉 나누리병원", rating: 4.6, reviews: 287, distance: "2.3km", eta: "당일 진료", badge: "" },
+      { name: "강남 연세통증클리닉", rating: 4.7, reviews: 163, distance: "0.9km", eta: "즉시 방문 가능", badge: "빠른응답" },
+    ],
+  },
+  {
+    id: "rental",
+    label: "렌터카",
+    icon: "car.fill" as const,
+    color: "#38A169",
+    desc: "대차 · 임시 차량 제공",
+    partners: [
+      { name: "SK렌터카 강남점", rating: 4.7, reviews: 389, distance: "1.0km", eta: "30분 내 배차", badge: "사고케어 인증" },
+      { name: "롯데렌터카 역삼점", rating: 4.5, reviews: 241, distance: "1.8km", eta: "1시간 내 배차", badge: "" },
+      { name: "그린카 강남센터", rating: 4.6, reviews: 178, distance: "2.5km", eta: "즉시 배차", badge: "빠른응답" },
+    ],
+  },
+  {
+    id: "lawyer",
+    label: "변호사",
+    icon: "shield.fill" as const,
+    color: "#805AD5",
+    desc: "법률 상담 · 합의 지원",
+    partners: [
+      { name: "교통사고 전문 법률사무소", rating: 4.9, reviews: 156, distance: "온라인", eta: "무료 상담", badge: "교통사고 전문" },
+      { name: "강남 로앤파트너스", rating: 4.8, reviews: 203, distance: "온라인", eta: "당일 상담", badge: "" },
+      { name: "서초 한결법률사무소", rating: 4.7, reviews: 98, distance: "온라인", eta: "무료 상담", badge: "빠른응답" },
+    ],
+  },
+];
+
 const ACCIDENT_TYPES = [
   { id: "rear", label: "추돌 사고", icon: "car.fill" as const, color: "#E53E3E" },
   { id: "side", label: "측면 충돌", icon: "car.2.fill" as const, color: "#DD6B20" },
@@ -60,6 +111,8 @@ export default function AccidentReportScreen() {
   const [location, setLocation] = useState("위치 자동 감지 중...");
   const [evidenceStep, setEvidenceStep] = useState(0);
   const [completedEvidence, setCompletedEvidence] = useState<number[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedPartner, setSelectedPartner] = useState<string | null>(null);
 
   const handleBack = () => {
     if (currentStep === "type") {
@@ -320,44 +373,115 @@ export default function AccidentReportScreen() {
           </View>
         )}
 
-        {/* STEP 4: 전문가 매칭 완료 */}
+        {/* STEP 4: 전문가 직접 선택 */}
         {currentStep === "match" && (
-          <View style={styles.matchSection}>
-            <View style={styles.matchSuccessIcon}>
-              <IconSymbol name="checkmark.circle.fill" size={56} color="#38A169" />
+          <View>
+            <View style={styles.stepHeader}>
+              <Text style={styles.stepTitle}>전문가를 직접 선택하세요</Text>
+              <Text style={styles.stepDesc}>필요한 분야를 선택하고 원하는 전문가에게 연결하세요</Text>
             </View>
-            <Text style={styles.matchTitle}>사고 접수 완료!</Text>
-            <Text style={styles.matchDesc}>
-              사고 정보가 접수되었습니다.{"\n"}
-              전문가들이 즉시 연결됩니다.
-            </Text>
 
-            <View style={styles.matchCards}>
-              {[
-                { label: "공업사", name: "강남 최고공업사", eta: "15분 내 연락", color: "#3182CE" },
-                { label: "렌터카", name: "SK렌터카 강남점", eta: "30분 내 배차", color: "#38A169" },
-                { label: "병원", name: "강남세브란스 정형외과", eta: "예약 가능", color: "#E53E3E" },
-                { label: "변호사", name: "교통사고 전문 법률사무소", eta: "무료 상담", color: "#805AD5" },
-              ].map((item) => (
-                <View key={item.label} style={styles.matchCard}>
-                  <View style={[styles.matchCardBadge, { backgroundColor: item.color + "20" }]}>
-                    <Text style={[styles.matchCardBadgeText, { color: item.color }]}>{item.label}</Text>
-                  </View>
-                  <View style={styles.matchCardInfo}>
-                    <Text style={styles.matchCardName}>{item.name}</Text>
-                    <Text style={[styles.matchCardEta, { color: item.color }]}>{item.eta}</Text>
-                  </View>
-                  <IconSymbol name="chevron.right" size={16} color="#A0AEC0" />
-                </View>
+            {/* 카테고리 탭 */}
+            <View style={styles.categoryTabs}>
+              {EXPERT_CATEGORIES.map((cat) => (
+                <Pressable
+                  key={cat.id}
+                  style={({ pressed }) => [
+                    styles.categoryTab,
+                    selectedCategory === cat.id && { backgroundColor: cat.color, borderColor: cat.color },
+                    pressed && { opacity: 0.8 },
+                  ]}
+                  onPress={() => { setSelectedCategory(cat.id); setSelectedPartner(null); }}
+                >
+                  <IconSymbol name={cat.icon} size={16} color={selectedCategory === cat.id ? "#FFFFFF" : cat.color} />
+                  <Text style={[styles.categoryTabText, selectedCategory === cat.id && { color: "#FFFFFF" }]}>
+                    {cat.label}
+                  </Text>
+                </Pressable>
               ))}
             </View>
 
+            {/* 선택된 카테고리 설명 */}
+            {selectedCategory && (() => {
+              const cat = EXPERT_CATEGORIES.find(c => c.id === selectedCategory)!;
+              return (
+                <View>
+                  <Text style={[styles.categoryDesc, { color: cat.color }]}>{cat.desc}</Text>
+                  {cat.partners.map((p) => (
+                    <Pressable
+                      key={p.name}
+                      style={({ pressed }) => [
+                        styles.partnerCard,
+                        selectedPartner === p.name && { borderColor: cat.color, borderWidth: 2 },
+                        pressed && { opacity: 0.85 },
+                      ]}
+                      onPress={() => setSelectedPartner(p.name)}
+                    >
+                      <View style={styles.partnerCardTop}>
+                        <View style={styles.partnerCardLeft}>
+                          <Text style={styles.partnerName}>{p.name}</Text>
+                          <View style={styles.partnerMeta}>
+                            <Text style={styles.partnerRating}>★ {p.rating}</Text>
+                            <Text style={styles.partnerReviews}>후기 {p.reviews}개</Text>
+                            <Text style={styles.partnerDistance}>{p.distance}</Text>
+                          </View>
+                          {p.badge ? (
+                            <View style={[styles.partnerBadge, { backgroundColor: cat.color + "15" }]}>
+                              <Text style={[styles.partnerBadgeText, { color: cat.color }]}>{p.badge}</Text>
+                            </View>
+                          ) : null}
+                        </View>
+                        <View style={styles.partnerCardRight}>
+                          <Text style={[styles.partnerEta, { color: cat.color }]}>{p.eta}</Text>
+                          {selectedPartner === p.name && (
+                            <View style={[styles.partnerCheck, { backgroundColor: cat.color }]}>
+                              <IconSymbol name="checkmark.circle.fill" size={18} color="#FFFFFF" />
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                    </Pressable>
+                  ))}
+                </View>
+              );
+            })()}
+
+            {!selectedCategory && (
+              <View style={styles.categoryEmptyBox}>
+                <IconSymbol name="person.fill" size={36} color="#CBD5E0" />
+                <Text style={styles.categoryEmptyText}>위에서 필요한 분야를 선택하세요</Text>
+                <Text style={styles.categoryEmptySubText}>공업사, 병원, 렌터카, 변호사 중 원하는 전문가를 직접 고를 수 있습니다</Text>
+              </View>
+            )}
+
             <Pressable
-              style={({ pressed }) => [styles.nextBtn, pressed && { opacity: 0.85 }]}
+              style={({ pressed }) => [
+                styles.nextBtn,
+                { marginTop: 24 },
+                !selectedPartner && styles.nextBtnDisabled,
+                pressed && selectedPartner && { opacity: 0.85 },
+              ]}
+              onPress={() => {
+                if (!selectedPartner) return;
+                if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                Alert.alert(
+                  "연결 요청 완료",
+                  `${selectedPartner}에 연결 요청을 보냈습니다.\n잠시 후 담당자가 연락드립니다.`,
+                  [{ text: "확인", onPress: handleGoToCare }]
+                );
+              }}
+            >
+              <Text style={styles.nextBtnText}>
+                {selectedPartner ? `${selectedPartner} 연결 요청` : "전문가를 선택하세요"}
+              </Text>
+              {selectedPartner && <IconSymbol name="arrow.right" size={18} color="#FFFFFF" />}
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [styles.skipBtn, pressed && { opacity: 0.7 }]}
               onPress={handleGoToCare}
             >
-              <Text style={styles.nextBtnText}>사고 처리 현황 보기</Text>
-              <IconSymbol name="arrow.right" size={18} color="#FFFFFF" />
+              <Text style={styles.skipBtnText}>나중에 연결하기</Text>
             </Pressable>
           </View>
         )}
@@ -729,6 +853,130 @@ const styles = StyleSheet.create({
   },
   matchCardEta: {
     fontSize: 12,
+    fontWeight: "600",
+  },
+  categoryTabs: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 16,
+  },
+  categoryTab: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
+    backgroundColor: "#FFFFFF",
+  },
+  categoryTabText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#4A5568",
+  },
+  categoryDesc: {
+    fontSize: 13,
+    fontWeight: "600",
+    marginBottom: 12,
+    marginLeft: 2,
+  },
+  partnerCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  partnerCardTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  partnerCardLeft: {
+    flex: 1,
+    gap: 4,
+  },
+  partnerCardRight: {
+    alignItems: "flex-end",
+    gap: 6,
+    marginLeft: 12,
+  },
+  partnerName: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#1A2B4C",
+  },
+  partnerMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  partnerRating: {
+    fontSize: 13,
+    color: "#DD6B20",
+    fontWeight: "600",
+  },
+  partnerReviews: {
+    fontSize: 12,
+    color: "#718096",
+  },
+  partnerDistance: {
+    fontSize: 12,
+    color: "#718096",
+  },
+  partnerBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+    marginTop: 2,
+  },
+  partnerBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  partnerEta: {
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  partnerCheck: {
+    borderRadius: 12,
+    padding: 1,
+  },
+  categoryEmptyBox: {
+    alignItems: "center",
+    paddingVertical: 40,
+    gap: 10,
+  },
+  categoryEmptyText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#4A5568",
+  },
+  categoryEmptySubText: {
+    fontSize: 13,
+    color: "#A0AEC0",
+    textAlign: "center",
+    lineHeight: 20,
+    paddingHorizontal: 20,
+  },
+  skipBtn: {
+    alignItems: "center",
+    paddingVertical: 14,
+    marginTop: 8,
+  },
+  skipBtnText: {
+    fontSize: 14,
+    color: "#718096",
     fontWeight: "600",
   },
 });
