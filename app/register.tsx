@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback } from "react";
 import {
   ScrollView,
   Text,
@@ -29,10 +29,17 @@ const INSURANCE_LIST = [
   { id: "mgen", name: "MG손해보험", tel: "1588-5959", color: "#2D3748" },
 ];
 
-// 한국 차량번호판 형식: 12가 3456 또는 123가 4567
-function formatPlate(raw: string): string {
-  return raw.toUpperCase();
-}
+// 차량번호판 한글 35자 (고정)
+const PLATE_CHARS = [
+  "가","나","다","라","마",
+  "거","너","더","러","머",
+  "버","서","어","저",
+  "고","노","도","로","모",
+  "보","소","오","조",
+  "구","누","두","루","무",
+  "부","수","우","주",
+  "하","허","호",
+];
 
 export default function RegisterScreen() {
   const [step, setStep] = useState<StepType>("차량 등록");
@@ -45,10 +52,17 @@ export default function RegisterScreen() {
   const [selectedInsurance, setSelectedInsurance] = useState<string[]>([]);
   const [policyNumber, setPolicyNumber] = useState("");
 
-  const charRef = useRef<TextInput>(null);
+  const [showCharPicker, setShowCharPicker] = useState(false);
   const numRef = useRef<TextInput>(null);
   const phoneRef = useRef<TextInput>(null);
   const birthRef = useRef<TextInput>(null);
+
+  const handleSelectChar = useCallback((ch: string) => {
+    if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setPlateChar(ch);
+    setShowCharPicker(false);
+    setTimeout(() => numRef.current?.focus(), 100);
+  }, []);
 
   const stepIndex = STEPS.indexOf(step);
   const progress = ((stepIndex + 1) / STEPS.length) * 100;
@@ -165,7 +179,7 @@ export default function RegisterScreen() {
                       onChangeText={(t) => {
                         const digits = t.replace(/\D/g, "").slice(0, 3);
                         setPlateRegion(digits);
-                        if (digits.length >= 2) charRef.current?.focus();
+                        if (digits.length >= 2) setShowCharPicker(true);
                       }}
                       placeholder="12"
                       placeholderTextColor="#B0B8C8"
@@ -173,23 +187,19 @@ export default function RegisterScreen() {
                       maxLength={3}
                       textAlign="center"
                     />
-                    <TextInput
-                      ref={charRef}
-                      style={[styles.plateInput, styles.plateInputChar]}
-                      value={plateChar}
-                      onChangeText={(t) => {
-                        // 한글 조합 중 중간 상태(자음/모음)도 허용, 완성 시 1자 제한
-                        // 완성된 한글(가-힣) 또는 조합 중인 자모(ㄱ-ㅎ, ㅏ-ㅣ) 모두 허용
-                        const filtered = t.replace(/[^가-힣ㄱ-ㅎㅏ-ㅣ]/g, "");
-                        const latest = filtered.slice(-1); // 마지막 1자만 유지
-                        setPlateChar(latest);
-                        // 완성된 한글일 때만 다음 필드로 이동
-                        if (/[가-힣]/.test(latest)) numRef.current?.focus();
-                      }}
-                      placeholder="가"
-                      placeholderTextColor="#B0B8C8"
-                      textAlign="center"
-                    />
+                    {/* 한글 선택 버튼 — TextInput 대신 탭으로 선택 */}
+                    <Pressable
+                      style={[styles.plateInput, styles.plateInputChar, styles.plateCharBtn,
+                        showCharPicker && styles.plateCharBtnActive]}
+                      onPress={() => setShowCharPicker((v) => !v)}
+                    >
+                      <Text style={[
+                        styles.plateCharBtnText,
+                        !plateChar && styles.plateCharBtnPlaceholder
+                      ]}>
+                        {plateChar || "가"}
+                      </Text>
+                    </Pressable>
                     <TextInput
                       ref={numRef}
                       style={[styles.plateInput, styles.plateInputNum]}
@@ -207,6 +217,26 @@ export default function RegisterScreen() {
                     />
                   </View>
                 </View>
+
+                {/* 한글 선택 키패드 */}
+                {showCharPicker && (
+                  <View style={styles.charPicker}>
+                    <Text style={styles.charPickerTitle}>한글을 선택하세요</Text>
+                    <View style={styles.charPickerGrid}>
+                      {PLATE_CHARS.map((ch) => (
+                        <Pressable
+                          key={ch}
+                          style={[styles.charPickerBtn, plateChar === ch && styles.charPickerBtnSelected]}
+                          onPress={() => handleSelectChar(ch)}
+                        >
+                          <Text style={[styles.charPickerBtnText, plateChar === ch && styles.charPickerBtnTextSelected]}>
+                            {ch}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+                  </View>
+                )}
 
                 {/* 미리보기 */}
                 {isPlateValid && (
@@ -669,6 +699,74 @@ const styles = StyleSheet.create({
   },
   nextBtnDisabled: {
     backgroundColor: "#CBD5E0",
+  },
+  // 한글 선택 버튼 (번호판)
+  plateCharBtn: {
+    justifyContent: "center",
+    alignItems: "center",
+    borderBottomWidth: 2,
+    borderBottomColor: "#CBD5E0",
+    backgroundColor: "#F7FAFC",
+    borderRadius: 4,
+  },
+  plateCharBtnActive: {
+    borderBottomColor: "#1A2B4C",
+    backgroundColor: "#EBF4FF",
+  },
+  plateCharBtnText: {
+    fontSize: 32,
+    fontWeight: "800",
+    color: "#1A2B4C",
+    textAlign: "center",
+  },
+  plateCharBtnPlaceholder: {
+    color: "#B0B8C8",
+  },
+  // 한글 키패드
+  charPicker: {
+    width: "100%",
+    maxWidth: 320,
+    backgroundColor: "#F7FAFC",
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  charPickerTitle: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#718096",
+    textAlign: "center",
+    marginBottom: 10,
+    letterSpacing: 0.5,
+  },
+  charPickerGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    justifyContent: "center",
+  },
+  charPickerBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 8,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  charPickerBtnSelected: {
+    backgroundColor: "#1A2B4C",
+    borderColor: "#1A2B4C",
+  },
+  charPickerBtnText: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#2D3748",
+  },
+  charPickerBtnTextSelected: {
+    color: "#FFFFFF",
   },
   nextBtnText: {
     fontSize: 16,
