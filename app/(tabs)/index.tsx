@@ -1,5 +1,5 @@
-import { ScrollView, Text, View, Pressable, StyleSheet, Image } from "react-native";
-import { useState } from "react";
+import { ScrollView, Text, View, Pressable, StyleSheet, Image, Switch } from "react-native";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { Platform } from "react-native";
@@ -37,6 +37,36 @@ const todayTip = DAILY_TIPS[tipIndex];
 
 export default function HomeScreen() {
   const router = useRouter();
+
+  // ─── 캐쉬드라이브 상태 ────────────────────────────────────────────────────────
+  const [driveOn, setDriveOn] = useState(false);
+  const [todayKm, setTodayKm] = useState(12.4);
+  const [totalEarned, setTotalEarned] = useState(1284);
+  const [earnedToday, setEarnedToday] = useState(12);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (driveOn) {
+      timerRef.current = setInterval(() => {
+        setTodayKm((prev) => {
+          const next = Math.round((prev + 0.1) * 10) / 10;
+          setEarnedToday(Math.floor(next));
+          return next;
+        });
+        setTotalEarned((prev) => prev + 1);
+      }, 3000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [driveOn]);
+
+  const handleDriveToggle = (val: boolean) => {
+    setDriveOn(val);
+    if (Platform.OS !== "web") {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    }
+  };
 
   const handleSOS = () => {
     if (Platform.OS !== "web") {
@@ -78,6 +108,66 @@ export default function HomeScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* 캐쉬드라이브 카드 */}
+        <Pressable
+          style={({ pressed }) => [styles.cashDriveCard, driveOn && styles.cashDriveCardActive, pressed && { opacity: 0.95 }]}
+          onPress={() => router.push("/reward" as never)}
+        >
+          <View style={styles.cashDriveHeader}>
+            <View style={styles.cashDriveTitleRow}>
+              <View style={[styles.cashDriveBadge, driveOn && styles.cashDriveBadgeLive]}>
+                <Text style={styles.cashDriveBadgeText}>{driveOn ? "LIVE" : "NEW"}</Text>
+              </View>
+              <View>
+                <Text style={styles.cashDriveTitle}>캐쉬드라이브</Text>
+                <Text style={styles.cashDriveSubtitle}>1km 주행 = 1원 적립</Text>
+              </View>
+            </View>
+            <Switch
+              value={driveOn}
+              onValueChange={handleDriveToggle}
+              trackColor={{ false: "#CBD5E0", true: "#3182CE" }}
+              thumbColor="#FFFFFF"
+              ios_backgroundColor="#CBD5E0"
+            />
+          </View>
+
+          {driveOn && (
+            <View style={styles.cashDriveLiveRow}>
+              <View style={styles.cashDriveLiveDot} />
+              <Text style={styles.cashDriveLiveText}>주행 중 · 적립 진행 중</Text>
+            </View>
+          )}
+
+          <View style={styles.cashDriveStats}>
+            <View style={styles.cashDriveStat}>
+              <Text style={styles.cashDriveStatValue}>
+                {todayKm.toFixed(1)}<Text style={styles.cashDriveStatUnit}>km</Text>
+              </Text>
+              <Text style={styles.cashDriveStatLabel}>오늘 주행</Text>
+            </View>
+            <View style={styles.cashDriveStatDivider} />
+            <View style={styles.cashDriveStat}>
+              <Text style={[styles.cashDriveStatValue, { color: "#38A169" }]}>
+                {earnedToday}<Text style={styles.cashDriveStatUnit}>원</Text>
+              </Text>
+              <Text style={styles.cashDriveStatLabel}>오늘 적립</Text>
+            </View>
+            <View style={styles.cashDriveStatDivider} />
+            <View style={styles.cashDriveStat}>
+              <Text style={[styles.cashDriveStatValue, { color: "#805AD5" }]}>
+                {totalEarned.toLocaleString()}<Text style={styles.cashDriveStatUnit}>원</Text>
+              </Text>
+              <Text style={styles.cashDriveStatLabel}>누적 적립</Text>
+            </View>
+          </View>
+
+          <View style={styles.cashDriveFooter}>
+            <IconSymbol name="info.circle.fill" size={12} color="#718096" />
+            <Text style={styles.cashDriveFooterText}>드라이브 ON 시 자동 적립 · 출금 최소 5,000원</Text>
+          </View>
+        </Pressable>
+
         {/* 위험 구간 배너 */}
         <View style={styles.dangerBanner}>
           <IconSymbol name="exclamationmark.triangle.fill" size={16} color="#DD6B20" />
@@ -480,5 +570,123 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#4A5568",
     textAlign: "center",
+  },
+  // ─── 캐쉬드라이브 ────────────────────────────────────────────────────────────────
+  cashDriveCard: {
+    margin: 16,
+    marginBottom: 0,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
+  },
+  cashDriveCardActive: {
+    borderColor: "#3182CE",
+    backgroundColor: "#EBF8FF",
+  },
+  cashDriveHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  cashDriveTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  cashDriveBadge: {
+    backgroundColor: "#3182CE",
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  cashDriveBadgeLive: {
+    backgroundColor: "#E53E3E",
+  },
+  cashDriveBadgeText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    letterSpacing: 0.5,
+  },
+  cashDriveTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#1A2B4C",
+  },
+  cashDriveSubtitle: {
+    fontSize: 11,
+    color: "#718096",
+    marginTop: 1,
+  },
+  cashDriveLiveRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 12,
+    backgroundColor: "#FFF5F5",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  cashDriveLiveDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#E53E3E",
+  },
+  cashDriveLiveText: {
+    fontSize: 12,
+    color: "#E53E3E",
+    fontWeight: "600",
+  },
+  cashDriveStats: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F7FAFC",
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 10,
+  },
+  cashDriveStat: {
+    flex: 1,
+    alignItems: "center",
+  },
+  cashDriveStatValue: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#1A2B4C",
+  },
+  cashDriveStatUnit: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#718096",
+  },
+  cashDriveStatLabel: {
+    fontSize: 11,
+    color: "#718096",
+    marginTop: 2,
+  },
+  cashDriveStatDivider: {
+    width: 1,
+    height: 36,
+    backgroundColor: "#E2E8F0",
+  },
+  cashDriveFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  cashDriveFooterText: {
+    fontSize: 11,
+    color: "#718096",
+    flex: 1,
   },
 });
