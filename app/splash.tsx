@@ -45,7 +45,7 @@ export default function SplashScreen() {
     <View style={styles.container}>
       <Animated.View style={[styles.logoWrapper, logoStyle]}>
         <Image
-          source={require("@/assets/images/sagocare_logo.png")}
+          source={require("@/assets/images/sagocare_logo_transparent.png")}
           style={styles.logo}
           resizeMode="contain"
         />

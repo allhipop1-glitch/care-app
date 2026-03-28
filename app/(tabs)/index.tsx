@@ -1,4 +1,4 @@
-import { ScrollView, Text, View, Pressable, StyleSheet } from "react-native";
+import { ScrollView, Text, View, Pressable, StyleSheet, Image } from "react-native";
 import { useState } from "react";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -58,7 +58,11 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.headerGreeting}>안녕하세요 👋</Text>
-          <Text style={styles.headerTitle}>사고케어</Text>
+          <Image
+            source={require("@/assets/images/sagocare_logo_transparent.png")}
+            style={styles.headerLogo}
+            resizeMode="contain"
+          />
         </View>
         <Pressable
           style={({ pressed }) => [styles.bellBtn, pressed && { opacity: 0.7 }]}
@@ -196,6 +200,10 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#90CDF4",
     fontWeight: "500",
+  },
+  headerLogo: {
+    width: 140,
+    height: 40,
   },
   headerTitle: {
     fontSize: 24,
