@@ -179,39 +179,6 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
-        {/* 내 차량 카드 */}
-        <View style={styles.carCard}>
-          <View style={styles.carCardTop}>
-            <View>
-              <Text style={styles.carCardLabel}>내 차량</Text>
-              <Text style={styles.carCardName}>현대 아반떼 CN7 (2022)</Text>
-              <Text style={styles.carCardPlate}>123가 4567</Text>
-            </View>
-            <View style={styles.carValueBox}>
-              <Text style={styles.carValueLabel}>예상 시세</Text>
-              <Text style={styles.carValueAmount}>1,850만원</Text>
-              <Text style={styles.carValueChange}>▼ 50만원 (지난달 대비)</Text>
-            </View>
-          </View>
-          <View style={styles.carCardDivider} />
-          <View style={styles.carCardBottom}>
-            <View style={styles.carStat}>
-              <IconSymbol name="shield.fill" size={14} color="#3182CE" />
-              <Text style={styles.carStatText}>보험 갱신 D-47</Text>
-            </View>
-            <View style={styles.carStat}>
-              <IconSymbol name="clock.fill" size={14} color="#38A169" />
-              <Text style={styles.carStatText}>사고 이력 없음</Text>
-            </View>
-            <Pressable
-              style={({ pressed }) => [styles.carCardBtn, pressed && { opacity: 0.7 }]}
-              onPress={() => router.push("/(tabs)/my" as never)}
-            >
-              <Text style={styles.carCardBtnText}>상세보기</Text>
-            </Pressable>
-          </View>
-        </View>
-
         {/* SOS 긴급 접수 버튼 */}
         <View style={styles.sosSection}>
           <Text style={styles.sosSectionLabel}>사고가 발생했나요?</Text>
@@ -269,6 +236,39 @@ export default function HomeScreen() {
                 <Text style={styles.quickMenuLabel}>{item.label}</Text>
               </Pressable>
             ))}
+          </View>
+        </View>
+
+        {/* 내 차량 시세 카드 */}
+        <View style={[styles.carCard, { marginTop: 16 }]}>
+          <View style={styles.carCardTop}>
+            <View>
+              <Text style={styles.carCardLabel}>내 차량</Text>
+              <Text style={styles.carCardName}>현대 아반떼 CN7 (2022)</Text>
+              <Text style={styles.carCardPlate}>123가 4567</Text>
+            </View>
+            <View style={styles.carValueBox}>
+              <Text style={styles.carValueLabel}>예상 시세</Text>
+              <Text style={styles.carValueAmount}>1,850만원</Text>
+              <Text style={styles.carValueChange}>▼ 50만원 (지난달 대비)</Text>
+            </View>
+          </View>
+          <View style={styles.carCardDivider} />
+          <View style={styles.carCardBottom}>
+            <View style={styles.carStat}>
+              <IconSymbol name="shield.fill" size={14} color="#3182CE" />
+              <Text style={styles.carStatText}>보험 갱신 D-47</Text>
+            </View>
+            <View style={styles.carStat}>
+              <IconSymbol name="clock.fill" size={14} color="#38A169" />
+              <Text style={styles.carStatText}>사고 이력 없음</Text>
+            </View>
+            <Pressable
+              style={({ pressed }) => [styles.carCardBtn, pressed && { opacity: 0.7 }]}
+              onPress={() => router.push("/(tabs)/my" as never)}
+            >
+              <Text style={styles.carCardBtnText}>상세보기</Text>
+            </Pressable>
           </View>
         </View>
       </ScrollView>
