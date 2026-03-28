@@ -7,6 +7,7 @@ import Animated, {
   withDelay,
 } from "react-native-reanimated";
 import { router } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function SplashScreen() {
   const logoOpacity = useSharedValue(0);
@@ -33,9 +34,18 @@ export default function SplashScreen() {
     sloganOpacity.value = withDelay(500, withTiming(1, { duration: 600 }));
     sloganY.value = withDelay(500, withTiming(0, { duration: 600 }));
 
-    // 2.4초 후 홈으로 이동
-    const timer = setTimeout(() => {
-      router.replace("/(tabs)");
+    // 2.4초 후 온보딩 완료 여부 확인 후 분기
+    const timer = setTimeout(async () => {
+      try {
+        const done = await AsyncStorage.getItem("onboardingDone");
+        if (done === "true") {
+          router.replace("/(tabs)");
+        } else {
+          router.replace("/register");
+        }
+      } catch {
+        router.replace("/(tabs)");
+      }
     }, 2400);
 
     return () => clearTimeout(timer);
