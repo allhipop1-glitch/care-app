@@ -1,5 +1,6 @@
 import { ScrollView, Text, View, Pressable, StyleSheet, Switch } from "react-native";
 import { useState } from "react";
+import { useRouter } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -32,6 +33,7 @@ const ACCIDENT_HISTORY = [
 ];
 
 export default function MyScreen() {
+  const router = useRouter();
   const [dangerAlertOn, setDangerAlertOn] = useState(true);
   const [insuranceAlertOn, setInsuranceAlertOn] = useState(true);
   const [marketPriceOn, setMarketPriceOn] = useState(true);
@@ -91,9 +93,12 @@ export default function MyScreen() {
                 <Text style={styles.insuranceSub}>갱신일: 2026.05.15 (D-57)</Text>
               </View>
             </View>
-            <View style={styles.insuranceBadge}>
-              <Text style={styles.insuranceBadgeText}>보험 등록됨</Text>
-            </View>
+            <Pressable
+              style={({ pressed }) => [styles.insuranceBadge, pressed && { opacity: 0.7 }]}
+              onPress={() => router.push("/insurance-save" as never)}
+            >
+              <Text style={styles.insuranceBadgeText}>보험료 절약 →</Text>
+            </Pressable>
           </View>
         </View>
 
@@ -176,9 +181,10 @@ export default function MyScreen() {
         {/* 기타 메뉴 */}
         <View style={styles.section}>
           {[
-            { icon: "info.circle.fill" as const, label: "앱 정보", color: "#718096" },
-            { icon: "doc.text.fill" as const, label: "이용약관 및 개인정보처리방침", color: "#718096" },
-            { icon: "gear" as const, label: "고객센터", color: "#718096" },
+            { icon: "flame.fill" as const, label: "안전운전 포인트", color: "#DD6B20", route: "/reward" },
+            { icon: "shield.fill" as const, label: "보험료 절약 알리미", color: "#3182CE", route: "/insurance-save" },
+            { icon: "info.circle.fill" as const, label: "앱 정보", color: "#718096", route: null },
+            { icon: "gear" as const, label: "고객센터", color: "#718096", route: null },
           ].map((item, idx, arr) => (
             <Pressable
               key={item.label}
@@ -187,6 +193,7 @@ export default function MyScreen() {
                 idx < arr.length - 1 && styles.menuItemBorder,
                 pressed && { opacity: 0.7 },
               ]}
+              onPress={() => item.route && router.push(item.route as never)}
             >
               <IconSymbol name={item.icon} size={18} color={item.color} />
               <Text style={styles.menuItemLabel}>{item.label}</Text>
@@ -196,7 +203,7 @@ export default function MyScreen() {
         </View>
 
         <View style={styles.versionBox}>
-          <Text style={styles.versionText}>차케어 v1.0.0</Text>
+          <Text style={styles.versionText}>사고케어 v1.0.0</Text>
         </View>
       </ScrollView>
     </ScreenContainer>

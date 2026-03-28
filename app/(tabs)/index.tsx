@@ -42,7 +42,7 @@ export default function HomeScreen() {
     if (Platform.OS !== "web") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
     }
-    router.push("/(tabs)/care" as never);
+    router.push("/accident-report" as never);
   };
 
   const QUICK_MENUS = [
@@ -58,7 +58,7 @@ export default function HomeScreen() {
       <View style={styles.header}>
         <View>
           <Text style={styles.headerGreeting}>안녕하세요 👋</Text>
-          <Text style={styles.headerTitle}>차케어</Text>
+          <Text style={styles.headerTitle}>사고케어</Text>
         </View>
         <Pressable
           style={({ pressed }) => [styles.bellBtn, pressed && { opacity: 0.7 }]}

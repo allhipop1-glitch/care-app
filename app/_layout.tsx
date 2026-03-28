@@ -88,6 +88,10 @@ export default function RootLayout() {
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="oauth/callback" />
+            <Stack.Screen name="accident-report" options={{ presentation: "fullScreenModal" }} />
+            <Stack.Screen name="onboarding" options={{ presentation: "fullScreenModal" }} />
+            <Stack.Screen name="reward" />
+            <Stack.Screen name="insurance-save" />
           </Stack>
           <StatusBar style="auto" />
         </QueryClientProvider>
