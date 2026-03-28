@@ -1,5 +1,6 @@
 import { ScrollView, Text, View, Pressable, StyleSheet, FlatList } from "react-native";
 import { useState } from "react";
+import { useRouter } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -31,6 +32,7 @@ const CATEGORY_ICONS = {
 
 export default function MapScreen() {
   const [activeCategory, setActiveCategory] = useState<Category>("전체");
+  const router = useRouter();
 
   const categories: Category[] = ["전체", "공업사", "렌터카", "병원", "변호사"];
 
@@ -106,6 +108,7 @@ export default function MapScreen() {
         renderItem={({ item }) => (
           <Pressable
             style={({ pressed }) => [styles.partnerCard, pressed && { opacity: 0.85 }]}
+            onPress={() => router.push({ pathname: "/partner-detail", params: { id: item.id } } as never)}
           >
             <View style={[styles.partnerIconBox, { backgroundColor: CATEGORY_COLORS[item.category] + "15" }]}>
               <IconSymbol
