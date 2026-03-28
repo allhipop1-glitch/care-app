@@ -1,6 +1,8 @@
 import { ScrollView, Text, View, Pressable, StyleSheet, Switch } from "react-native";
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "expo-router";
+import { useFocusEffect } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -38,6 +40,51 @@ export default function MyScreen() {
   const [insuranceAlertOn, setInsuranceAlertOn] = useState(true);
   const [marketPriceOn, setMarketPriceOn] = useState(true);
 
+  // 온보딩 등록 데이터
+  const [userName, setUserName] = useState("");
+  const [plateNumber, setPlateNumber] = useState("");
+  const [insurances, setInsurances] = useState<string[]>([]);
+
+  const INSURANCE_NAMES: Record<string, string> = {
+    samsung: "삼성화재",
+    hyundai: "현대해상",
+    kb: "KB손해보험",
+    db: "DB손해보험",
+    meritz: "메리츠화재",
+    lotte: "롯데손해보험",
+    hanwha: "한화손해보험",
+    mgen: "MG손해보험",
+  };
+
+  const refreshProfile = async () => {
+    try {
+      const raw = await AsyncStorage.getItem("userProfile");
+      if (raw) {
+        const profile = JSON.parse(raw);
+        if (profile.name) setUserName(profile.name);
+        if (profile.plate) setPlateNumber(profile.plate);
+        if (profile.insurance && profile.insurance.length > 0) {
+          setInsurances(profile.insurance.map((id: string) => INSURANCE_NAMES[id] || id));
+        } else {
+          setInsurances([]);
+        }
+      }
+    } catch (e) {
+      console.log("프로필 로드 오류", e);
+    }
+  };
+
+  useEffect(() => {
+    refreshProfile();
+  }, []);
+
+  // 소화면 복귀 시 자동 갱신
+  useFocusEffect(
+    useCallback(() => {
+      refreshProfile();
+    }, [])
+  );
+
   return (
     <ScreenContainer>
       <View style={styles.header}>
@@ -51,10 +98,16 @@ export default function MyScreen() {
             <IconSymbol name="person.fill" size={32} color="#FFFFFF" />
           </View>
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>홍길동 운전자님</Text>
-            <Text style={styles.profileSub}>가입 2년 3개월 · 사고 이력 3건</Text>
+            <Text style={styles.profileName}>{userName ? `${userName} 운전자님` : "운전자님"}</Text>
+            <Text style={styles.profileSub}>
+              {plateNumber ? `차량번호 ${plateNumber}` : "차량 미등록"}
+              {insurances.length > 0 ? ` · ${insurances[0]} 외 ${insurances.length - 1}건` : ""}
+            </Text>
           </View>
-          <Pressable style={({ pressed }) => [styles.editBtn, pressed && { opacity: 0.7 }]}>
+          <Pressable
+            style={({ pressed }) => [styles.editBtn, pressed && { opacity: 0.7 }]}
+            onPress={() => router.push("/vehicle-manage" as never)}
+          >
             <IconSymbol name="pencil" size={16} color="#3182CE" />
           </Pressable>
         </View>
@@ -63,9 +116,12 @@ export default function MyScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>내 차량 관리</Text>
-            <Pressable style={({ pressed }) => [styles.addBtn, pressed && { opacity: 0.7 }]}>
-              <IconSymbol name="plus.circle.fill" size={16} color="#3182CE" />
-              <Text style={styles.addBtnText}>차량 추가</Text>
+            <Pressable
+              style={({ pressed }) => [styles.addBtn, pressed && { opacity: 0.7 }]}
+              onPress={() => router.push("/vehicle-manage" as never)}
+            >
+              <IconSymbol name="pencil" size={16} color="#3182CE" />
+              <Text style={styles.addBtnText}>수정</Text>
             </Pressable>
           </View>
 
@@ -75,8 +131,8 @@ export default function MyScreen() {
                 <IconSymbol name="car.fill" size={22} color="#3182CE" />
               </View>
               <View>
-                <Text style={styles.carItemName}>현대 아반떼 CN7 (2022)</Text>
-                <Text style={styles.carItemPlate}>123가 4567</Text>
+                <Text style={styles.carItemName}>내 차량</Text>
+                <Text style={styles.carItemPlate}>{plateNumber || "번호판 미등록"}</Text>
               </View>
             </View>
             <View style={styles.carItemRight}>
@@ -89,8 +145,10 @@ export default function MyScreen() {
             <View style={styles.insuranceLeft}>
               <IconSymbol name="doc.text.fill" size={16} color="#805AD5" />
               <View>
-                <Text style={styles.insuranceName}>현대해상 하이카다이렉트</Text>
-                <Text style={styles.insuranceSub}>갱신일: 2026.05.15 (D-57)</Text>
+                <Text style={styles.insuranceName}>
+                  {insurances.length > 0 ? insurances.join(" · ") : "보험사 미등록"}
+                </Text>
+                <Text style={styles.insuranceSub}>등록된 보험사</Text>
               </View>
             </View>
             <Pressable
@@ -183,6 +241,7 @@ export default function MyScreen() {
           {[
             { icon: "flame.fill" as const, label: "안전운전 포인트", color: "#DD6B20", route: "/reward" },
             { icon: "shield.fill" as const, label: "보험료 절약 알리미", color: "#3182CE", route: "/insurance-save" },
+            { icon: "car.fill" as const, label: "내 차량 관리", color: "#3182CE", route: "/vehicle-manage" },
             { icon: "info.circle.fill" as const, label: "앱 정보", color: "#718096", route: null },
             { icon: "gear" as const, label: "고객센터", color: "#718096", route: null },
           ].map((item, idx, arr) => (

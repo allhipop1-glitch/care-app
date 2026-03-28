@@ -1,7 +1,8 @@
 import { ScrollView, Text, View, Pressable, StyleSheet, TextInput, Alert, Linking, Platform } from "react-native";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -126,6 +127,27 @@ export default function AccidentReportScreen() {
   const [policeReported, setPoliceReported] = useState(false);
   const [selectedInsurance, setSelectedInsurance] = useState<string | null>(null);
   const [insuranceCalled, setInsuranceCalled] = useState(false);
+
+  // 등록된 보험사 자동 선택
+  useEffect(() => {
+    const loadInsurance = async () => {
+      try {
+        const raw = await AsyncStorage.getItem("userProfile");
+        if (raw) {
+          const profile = JSON.parse(raw);
+          const list: string[] = profile.insurance || [];
+          if (list.length > 0) {
+            // 등록된 첫 번째 보험사 id로 직접 매칭
+            const match = INSURANCE_COMPANIES.find(c => list.includes(c.id));
+            if (match) setSelectedInsurance(match.id);
+          }
+        }
+      } catch (e) {
+        console.log("보험사 로드 오류", e);
+      }
+    };
+    loadInsurance();
+  }, []);
 
   const handleBack = () => {
     if (currentStep === "type") {
