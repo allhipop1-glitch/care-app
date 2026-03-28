@@ -61,7 +61,8 @@ export default function RegisterScreen() {
   };
 
   const fullPlate = `${plateRegion}${plateChar} ${plateNum}`.trim();
-  const isPlateValid = plateRegion.length >= 2 && plateChar.length >= 1 && plateNum.length >= 4;
+  // 완성된 한글(가-힣) 또는 조합 중인 자모(ㄱ-ㅎ, ㅏ-ㅣ) 모두 유효로 처리
+  const isPlateValid = plateRegion.length >= 2 && /[가-힣ㄱ-ㅎㅏ-ㅣ]/.test(plateChar) && plateNum.length >= 4;
 
   const handleNext = async () => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -177,14 +178,16 @@ export default function RegisterScreen() {
                       style={[styles.plateInput, styles.plateInputChar]}
                       value={plateChar}
                       onChangeText={(t) => {
-                        // 한글만 허용
-                        const korean = t.replace(/[^가-힣]/g, "").slice(0, 1);
-                        setPlateChar(korean);
-                        if (korean.length >= 1) numRef.current?.focus();
+                        // 한글 조합 중 중간 상태(자음/모음)도 허용, 완성 시 1자 제한
+                        // 완성된 한글(가-힣) 또는 조합 중인 자모(ㄱ-ㅎ, ㅏ-ㅣ) 모두 허용
+                        const filtered = t.replace(/[^가-힣ㄱ-ㅎㅏ-ㅣ]/g, "");
+                        const latest = filtered.slice(-1); // 마지막 1자만 유지
+                        setPlateChar(latest);
+                        // 완성된 한글일 때만 다음 필드로 이동
+                        if (/[가-힣]/.test(latest)) numRef.current?.focus();
                       }}
                       placeholder="가"
                       placeholderTextColor="#B0B8C8"
-                      maxLength={1}
                       textAlign="center"
                     />
                     <TextInput
