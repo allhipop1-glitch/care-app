@@ -5,15 +5,14 @@ import Animated, {
   useAnimatedStyle,
   withTiming,
   withDelay,
-  runOnJS,
 } from "react-native-reanimated";
 import { router } from "expo-router";
 
 export default function SplashScreen() {
   const logoOpacity = useSharedValue(0);
-  const logoScale = useSharedValue(0.85);
+  const logoScale = useSharedValue(0.88);
   const sloganOpacity = useSharedValue(0);
-  const sloganY = useSharedValue(16);
+  const sloganY = useSharedValue(14);
 
   const logoStyle = useAnimatedStyle(() => ({
     opacity: logoOpacity.value,
@@ -34,19 +33,16 @@ export default function SplashScreen() {
     sloganOpacity.value = withDelay(500, withTiming(1, { duration: 600 }));
     sloganY.value = withDelay(500, withTiming(0, { duration: 600 }));
 
-    // 2.2초 후 홈으로 이동
+    // 2.4초 후 홈으로 이동
     const timer = setTimeout(() => {
       router.replace("/(tabs)");
-    }, 2200);
+    }, 2400);
 
     return () => clearTimeout(timer);
   }, []);
 
   return (
     <View style={styles.container}>
-      {/* 배경 그라디언트 효과 */}
-      <View style={styles.bgCircle} />
-
       <Animated.View style={[styles.logoWrapper, logoStyle]}>
         <Image
           source={require("@/assets/images/sagocare_logo.png")}
@@ -66,40 +62,31 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0D2240",
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
   },
-  bgCircle: {
-    position: "absolute",
-    width: 500,
-    height: 500,
-    borderRadius: 250,
-    backgroundColor: "rgba(255,255,255,0.03)",
-    top: "20%",
-    alignSelf: "center",
-  },
   logoWrapper: {
     alignItems: "center",
-    marginBottom: 40,
+    marginBottom: 36,
   },
   logo: {
-    width: 280,
-    height: 188,
+    width: 300,
+    height: 200,
   },
   sloganWrapper: {
     alignItems: "center",
     gap: 8,
   },
   slogan: {
-    fontSize: 22,
+    fontSize: 20,
     fontWeight: "700",
-    color: "#FFFFFF",
+    color: "#1A2B4C",
     letterSpacing: 0.5,
   },
   subSlogan: {
-    fontSize: 14,
-    color: "rgba(255,255,255,0.55)",
-    letterSpacing: 0.3,
+    fontSize: 13,
+    color: "#718096",
+    letterSpacing: 0.2,
   },
 });
