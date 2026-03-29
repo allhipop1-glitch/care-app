@@ -34,3 +34,19 @@
 - [x] 마이페이지 상단 프로필 카드에 차량번호·이름·보험사 표시 (AsyncStorage 로드)
 - [x] 사고 신고 4단계 보험사 접수 — 등록된 보험사 자동 선택 연동
 - [x] 마이페이지 '내 차량 관리' 메뉴 — 차량번호 + 보험사 수정 화면 추가
+
+## 관리자 대시보드 & 업체 포털 (웹)
+
+- [x] 공통 웹 레이아웃 컴포넌트 (사이드바 + 헤더)
+- [x] 운영자 대시보드 홈 (/admin)
+- [x] 운영자 사고 관리 (/admin/accidents)
+- [x] 운영자 파트너 관리 (/admin/partners)
+- [x] 운영자 콘텐츠 관리 (/admin/content)
+- [x] 운영자 정산 관리 (/admin/settlement)
+- [x] 파트너 허브 랜딩 (/partner)
+- [x] 공업사 포털 (/partner/garage)
+- [x] 렉카 포털 (/partner/tow)
+- [x] 렌터카 포털 (/partner/rental)
+- [x] 병원 포털 (/partner/hospital)
+- [x] 변호사 포털 (/partner/lawyer)
+- [x] 손해사정사 포털 (/partner/adjuster)
