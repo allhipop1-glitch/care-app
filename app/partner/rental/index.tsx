@@ -37,6 +37,17 @@ export default function RentalPortal() {
       partnerName="SK렌터카 강남점"
       navItems={NAV}
     >
+      {/* D-day 임박 차량 알림 */}
+      {ACTIVE_RENTALS.filter((r) => r.dday <= 3).length > 0 && (
+        <View style={{ backgroundColor: "#FFF5F5", borderWidth: 2, borderColor: "#E53E3E", borderRadius: 12, padding: 14, marginBottom: 20, flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <Text style={{ fontSize: 24 }}>⚠️</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 15, fontWeight: "800", color: "#E53E3E" }}>D-3 이내 반납 예정 차량 {ACTIVE_RENTALS.filter((r) => r.dday <= 3).length}대</Text>
+            <Text style={{ fontSize: 12, color: "#718096", marginTop: 2 }}>연장 또는 반납 일정을 사용자에게 확인해주세요. 25일 한도 초과 시 보험 처리 불가능합니다.</Text>
+          </View>
+        </View>
+      )}
+
       {/* Stats */}
       <View style={{ flexDirection: "row", gap: 16, marginBottom: 24, flexWrap: "wrap" }}>
         <StatCard label="배차 요청" value="1건" sub="즉시 처리 필요" color="#DD6B20" icon="🔔" />

@@ -37,6 +37,20 @@ export default function LawyerPortal() {
       partnerName="교통사고 전문 법률사무소"
       navItems={NAV}
     >
+      {/* 신규 상담 요청 알림 */}
+      {NEW_REQUESTS.length > 0 && (
+        <View style={{ backgroundColor: "#FAF5FF", borderWidth: 2, borderColor: "#805AD5", borderRadius: 12, padding: 14, marginBottom: 20, flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <Text style={{ fontSize: 24 }}>⚖️</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 15, fontWeight: "800", color: "#805AD5" }}>신규 법률 상담 요청 {NEW_REQUESTS.length}건</Text>
+            <Text style={{ fontSize: 12, color: "#718096", marginTop: 2 }}>상담 수락 여부를 연락해주세요. 불수락 시 다른 변호사에게 자동 안내됩니다.</Text>
+          </View>
+          <View style={{ backgroundColor: "#805AD5", width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" }}>
+            <Text style={{ color: "#FFFFFF", fontSize: 14, fontWeight: "800" }}>{NEW_REQUESTS.length}</Text>
+          </View>
+        </View>
+      )}
+
       {/* Stats */}
       <View style={{ flexDirection: "row", gap: 16, marginBottom: 24, flexWrap: "wrap" }}>
         <StatCard label="신규 상담 요청" value="1건" color="#DD6B20" icon="📩" />

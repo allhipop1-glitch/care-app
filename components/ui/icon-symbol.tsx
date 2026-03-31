@@ -51,6 +51,10 @@ const MAPPING = {
   "magnifyingglass": "search",
   "heart.fill": "favorite",
   "flame.fill": "local-fire-department",
+  // Guardian
+  "shield.lefthalf.filled": "verified-user",
+  "waveform.path.ecg": "sos",
+  "person.2.circle.fill": "group",
 } as IconMapping;
 
 /**

@@ -239,6 +239,25 @@ export default function HomeScreen() {
           </View>
         </View>
 
+        {/* 관리자/파트너 포털 진입 (개발/운영 전용) */}
+        <View style={styles.devPortalSection}>
+          <Text style={styles.devPortalLabel}>운영 포털</Text>
+          <View style={styles.devPortalRow}>
+            <Pressable
+              style={({ pressed }) => [styles.devPortalBtn, { backgroundColor: "#1A2B4C" }, pressed && { opacity: 0.75 }]}
+              onPress={() => router.push("/admin" as never)}
+            >
+              <Text style={styles.devPortalBtnText}>⚙️ 관리자 대시보드</Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [styles.devPortalBtn, { backgroundColor: "#2D3748" }, pressed && { opacity: 0.75 }]}
+              onPress={() => router.push("/partner" as never)}
+            >
+              <Text style={styles.devPortalBtnText}>🏢 업체 포털</Text>
+            </Pressable>
+          </View>
+        </View>
+
         {/* 내 차량 시세 카드 */}
         <View style={[styles.carCard, { marginTop: 16 }]}>
           <View style={styles.carCardTop}>
@@ -688,5 +707,34 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#718096",
     flex: 1,
+  },
+  // 관리자/파트너 포털 진입
+  devPortalSection: {
+    paddingHorizontal: 16,
+    marginTop: 20,
+    marginBottom: 4,
+  },
+  devPortalLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#A0AEC0",
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
+    marginBottom: 8,
+  },
+  devPortalRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  devPortalBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  devPortalBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
 });

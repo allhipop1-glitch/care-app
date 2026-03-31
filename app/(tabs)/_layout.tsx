@@ -41,6 +41,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="guardian"
+        options={{
+          title: "가디언",
+          tabBarIcon: ({ color }) => <IconSymbol size={26} name="shield.lefthalf.filled" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="care"
         options={{
           title: "사고처리",

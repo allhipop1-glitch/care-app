@@ -42,6 +42,20 @@ export default function TowPortal() {
       partnerName="강남렉카서비스"
       navItems={NAV}
     >
+      {/* 출동 요청 긴급 알림 */}
+      {!accepted && DISPATCH_REQUESTS.length > 0 && (
+        <View style={{ backgroundColor: "#FFF5F5", borderWidth: 2.5, borderColor: "#E53E3E", borderRadius: 12, padding: 14, marginBottom: 20, flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <Text style={{ fontSize: 24 }}>🚨</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 15, fontWeight: "800", color: "#E53E3E" }}>긴급 출동 요청이 도착했습니다!</Text>
+            <Text style={{ fontSize: 12, color: "#718096", marginTop: 2 }}>잔여 {timer}초 · 미응답 시 자동 다음 렉카로 전달됩니다</Text>
+          </View>
+          <View style={{ backgroundColor: timer > 30 ? "#E53E3E" : "#C53030", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}>
+            <Text style={{ color: "#FFFFFF", fontSize: 18, fontWeight: "900" }}>{timer}s</Text>
+          </View>
+        </View>
+      )}
+
       {/* Stats */}
       <View style={{ flexDirection: "row", gap: 16, marginBottom: 24, flexWrap: "wrap" }}>
         <StatCard label="오늘 출동" value="8건" color="#DD6B20" icon="🚛" />

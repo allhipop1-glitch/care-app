@@ -39,6 +39,20 @@ export default function GaragePortal() {
       partnerName="강남 최고공업사"
       navItems={NAV}
     >
+      {/* 신규 의뢰 알림 배너 */}
+      {NEW_REQUESTS.length > 0 && (
+        <View style={{ backgroundColor: "#FFFAF0", borderWidth: 2, borderColor: "#DD6B20", borderRadius: 12, padding: 14, marginBottom: 20, flexDirection: "row", alignItems: "center", gap: 12 }}>
+          <Text style={{ fontSize: 24 }}>🔔</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 15, fontWeight: "800", color: "#DD6B20" }}>신규 수리 의뢰 {NEW_REQUESTS.length}건이 도착했습니다</Text>
+            <Text style={{ fontSize: 12, color: "#718096", marginTop: 2 }}>아래에서 수락 또는 거절해주세요. 30분 내 미응답 시 자동 반려됩니다.</Text>
+          </View>
+          <View style={{ backgroundColor: "#DD6B20", width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" }}>
+            <Text style={{ color: "#FFFFFF", fontSize: 14, fontWeight: "800" }}>{NEW_REQUESTS.length}</Text>
+          </View>
+        </View>
+      )}
+
       {/* Stats */}
       <View style={{ flexDirection: "row", gap: 16, marginBottom: 24, flexWrap: "wrap" }}>
         <StatCard label="신규 의뢰" value="2건" sub="즉시 수락 필요" color="#DD6B20" icon="🔔" />

@@ -16,6 +16,7 @@ import * as Haptics from "expo-haptics";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { lookupInsuranceByPlate } from "@/lib/insurance-lookup";
 
 const INSURANCE_LIST = [
   { id: "samsung", name: "삼성화재", tel: "1588-5114", color: "#1A56DB" },
@@ -87,6 +88,30 @@ export default function VehicleManageScreen() {
     };
     load();
   }, []);
+
+  // 차량번호 완성 시 보험사 자동 조회
+  const [autoLookupResult, setAutoLookupResult] = useState<string | null>(null);
+
+  const [isLookingUp, setIsLookingUp] = useState(false);
+
+  useEffect(() => {
+    if (!isPlateValid) return;
+    let cancelled = false;
+    setIsLookingUp(true);
+    lookupInsuranceByPlate(fullPlate).then((result) => {
+      if (cancelled) return;
+      setIsLookingUp(false);
+      if (result.status === "found") {
+        setAutoLookupResult(result.insurance.name);
+        if (selectedInsurance.length === 0) {
+          setSelectedInsurance([result.insurance.id]);
+        }
+      } else {
+        setAutoLookupResult(null);
+      }
+    });
+    return () => { cancelled = true; };
+  }, [fullPlate, isPlateValid]);
 
   const handleSelectChar = useCallback((ch: string) => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -250,6 +275,19 @@ export default function VehicleManageScreen() {
               <Text style={styles.sectionTitle}>가입 보험사</Text>
               <Text style={styles.sectionSubLabel}>복수 선택 가능</Text>
             </View>
+
+            {/* 자동 조회 결과 배너 */}
+            {isLookingUp && isPlateValid && (
+              <View style={{ backgroundColor: "#EBF8FF", borderRadius: 8, padding: 10, marginBottom: 10, flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <Text style={{ fontSize: 13, color: "#3182CE" }}>🔍 차량번호로 보험사 조회 중...</Text>
+              </View>
+            )}
+            {!isLookingUp && autoLookupResult && (
+              <View style={{ backgroundColor: "#F0FFF4", borderRadius: 8, padding: 10, marginBottom: 10, flexDirection: "row", alignItems: "center", gap: 8, borderWidth: 1, borderColor: "#9AE6B4" }}>
+                <Text style={{ fontSize: 13, color: "#276749", fontWeight: "600" }}>✅ 자동 조회: {autoLookupResult}</Text>
+                <Text style={{ fontSize: 11, color: "#48BB78", marginLeft: 4 }}>시뮬레이션 (API 연동 전)</Text>
+              </View>
+            )}
 
             <View style={styles.insuranceGrid}>
               {INSURANCE_LIST.map((ins) => {
