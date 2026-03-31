@@ -18,7 +18,7 @@ const INSURANCE_COMPANIES = [
   { id: "other", name: "기타 보험사", tel: "해당 보험사 연락", color: "#718096", logo: "📞" },
 ];
 
-type Step = "type" | "location" | "evidence" | "match";
+type Step = "call" | "type" | "location" | "evidence" | "match";
 
 const EXPERT_CATEGORIES = [
   {
@@ -105,19 +105,11 @@ const EVIDENCE_STEPS = [
     color: "#805AD5",
     tips: ["목격자 이름·연락처", "블랙박스 영상 요청", "CCTV 보존 신청"],
   },
-  {
-    step: 4,
-    title: "경찰 신고 & 보험 접수",
-    desc: "112 신고 후 보험사에 사고 접수를 완료하세요.",
-    icon: "shield.fill" as const,
-    color: "#DD6B20",
-    tips: ["112 신고 (부상 시 필수)", "보험사 사고 접수 전화", "사고 사실 확인서 요청"],
-  },
 ];
 
 export default function AccidentReportScreen() {
   const router = useRouter();
-  const [currentStep, setCurrentStep] = useState<Step>("type");
+  const [currentStep, setCurrentStep] = useState<Step>("call");
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [location, setLocation] = useState("위치 자동 감지 중...");
   const [evidenceStep, setEvidenceStep] = useState(0);
@@ -175,8 +167,10 @@ export default function AccidentReportScreen() {
   }, []);
 
   const handleBack = () => {
-    if (currentStep === "type") {
+    if (currentStep === "call") {
       router.back();
+    } else if (currentStep === "type") {
+      setCurrentStep("call");
     } else if (currentStep === "location") {
       setCurrentStep("type");
     } else if (currentStep === "evidence") {
@@ -225,7 +219,7 @@ export default function AccidentReportScreen() {
     router.replace("/(tabs)/care" as never);
   };
 
-  const stepNumber = currentStep === "type" ? 1 : currentStep === "location" ? 2 : currentStep === "evidence" ? 3 : 4;
+  const stepNumber = currentStep === "call" ? 1 : currentStep === "type" ? 2 : currentStep === "location" ? 3 : currentStep === "evidence" ? 4 : 5;
 
   return (
     <ScreenContainer containerClassName="bg-[#1A2B4C]">
@@ -239,19 +233,175 @@ export default function AccidentReportScreen() {
         </Pressable>
         <View style={styles.headerCenter}>
           <Text style={styles.headerTitle}>사고 접수</Text>
-          <Text style={styles.headerStep}>{stepNumber} / 4</Text>
+          <Text style={styles.headerStep}>{stepNumber} / 5</Text>
         </View>
         <View style={{ width: 40 }} />
       </View>
 
       {/* Progress Bar */}
       <View style={styles.progressBar}>
-        <View style={[styles.progressFill, { width: `${(stepNumber / 4) * 100}%` }]} />
+        <View style={[styles.progressFill, { width: `${(stepNumber / 5) * 100}%` }]} />
       </View>
 
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-        {/* STEP 1: 사고 유형 선택 */}
+        {/* STEP 1: 긴급 전화 (112 & 보험사) */}
+        {currentStep === "call" && (
+          <View>
+            <View style={styles.stepHeader}>
+              <Text style={styles.stepTitle}>지금 바로 신고하세요</Text>
+              <Text style={styles.stepDesc}>사고 직후 가장 먼저 해야 할 일입니다. 신고 후 다음 단계를 진행하세요.</Text>
+            </View>
+
+            {/* 자동 선택된 보험사 안내 배너 */}
+            {selectedInsurance && (() => {
+              const autoIns = INSURANCE_COMPANIES.find(i => i.id === selectedInsurance);
+              return (
+                <View style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  backgroundColor: "#EBF8FF",
+                  borderRadius: 10,
+                  padding: 12,
+                  marginBottom: 16,
+                  borderLeftWidth: 3,
+                  borderLeftColor: "#3182CE",
+                  gap: 8,
+                }}>
+                  <Text style={{ fontSize: 18 }}>🔍</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 13, fontWeight: "700", color: "#2B6CB0" }}>
+                      등록된 차량 정보를 기반으로 {autoIns?.name}에 가입된 것으로 보입니다.
+                    </Text>
+                    <Text style={{ fontSize: 11, color: "#4A90D9", marginTop: 2 }}>
+                      다른 보험사라면 아래에서 직접 선택해 주세요.
+                    </Text>
+                  </View>
+                </View>
+              );
+            })()}
+
+            {/* 112 신고 */}
+            <View style={[styles.reportBlock, { marginBottom: 12 }]}>
+              <View style={styles.reportBlockHeader}>
+                <View style={[styles.reportStepBadge, { backgroundColor: policeReported ? "#38A169" : "#E53E3E" }]}>
+                  <Text style={styles.reportStepBadgeText}>{policeReported ? "✓" : "1"}</Text>
+                </View>
+                <Text style={styles.reportBlockTitle}>경찰 신고 (112)</Text>
+                {policeReported && <Text style={styles.reportDoneLabel}>신고 완료</Text>}
+              </View>
+              <Text style={styles.reportBlockDesc}>부상자가 있거나 상대방이 도주한 경우 반드시 신고하세요. 신고 접수 번호를 보험사에 전달해야 합니다.</Text>
+              <View style={styles.reportBtnRow}>
+                <Pressable
+                  style={({ pressed }) => [styles.callBtn, { backgroundColor: "#E53E3E" }, pressed && { opacity: 0.85 }]}
+                  onPress={() => {
+                    if (Platform.OS !== "web") {
+                      Linking.openURL("tel:112");
+                    } else {
+                      Alert.alert("112 신고", "112에 전화를 연결합니다.");
+                    }
+                  }}
+                >
+                  <Text style={styles.callBtnIcon}>📞</Text>
+                  <Text style={styles.callBtnText}>112 신고 전화</Text>
+                </Pressable>
+                <Pressable
+                  style={({ pressed }) => [
+                    styles.doneBtn,
+                    policeReported && { backgroundColor: "#38A169" },
+                    pressed && { opacity: 0.85 },
+                  ]}
+                  onPress={() => setPoliceReported(true)}
+                >
+                  <Text style={[styles.doneBtnText, policeReported && { color: "#FFFFFF" }]}>
+                    {policeReported ? "✓ 완료" : "신고 완료"}
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+
+            {/* 보험사 접수 */}
+            <View style={styles.reportBlock}>
+              <View style={styles.reportBlockHeader}>
+                <View style={[styles.reportStepBadge, { backgroundColor: insuranceCalled ? "#38A169" : "#DD6B20" }]}>
+                  <Text style={styles.reportStepBadgeText}>{insuranceCalled ? "✓" : "2"}</Text>
+                </View>
+                <Text style={styles.reportBlockTitle}>보험사 사고 접수</Text>
+                {insuranceCalled && <Text style={styles.reportDoneLabel}>접수 완료</Text>}
+              </View>
+              <Text style={styles.reportBlockDesc}>내 보험사를 선택하고 사고 접수 전화를 하세요. 접수 즉시 출동 서비스가 시작됩니다.</Text>
+              <View style={styles.insuranceGrid}>
+                {INSURANCE_COMPANIES.map((ins) => (
+                  <Pressable
+                    key={ins.id}
+                    style={({ pressed }) => [
+                      styles.insuranceCard,
+                      selectedInsurance === ins.id && { borderColor: ins.color, borderWidth: 2, backgroundColor: ins.color + "10" },
+                      pressed && { opacity: 0.8 },
+                    ]}
+                    onPress={() => setSelectedInsurance(ins.id)}
+                  >
+                    <Text style={styles.insuranceLogo}>{ins.logo}</Text>
+                    <Text style={[styles.insuranceName, selectedInsurance === ins.id && { color: ins.color, fontWeight: "700" }]}>
+                      {ins.name}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              {selectedInsurance && (() => {
+                const ins = INSURANCE_COMPANIES.find(i => i.id === selectedInsurance)!;
+                return (
+                  <View style={styles.insuranceCallBox}>
+                    <Text style={styles.insuranceCallNum}>{ins.tel}</Text>
+                    <View style={styles.reportBtnRow}>
+                      <Pressable
+                        style={({ pressed }) => [styles.callBtn, { backgroundColor: ins.color, flex: 1 }, pressed && { opacity: 0.85 }]}
+                        onPress={() => {
+                          if (Platform.OS !== "web") {
+                            Linking.openURL(`tel:${ins.tel.replace(/-/g, "")}`);
+                          } else {
+                            Alert.alert("보험사 접수", `${ins.name} ${ins.tel}에 연결합니다.`);
+                          }
+                        }}
+                      >
+                        <Text style={styles.callBtnIcon}>📞</Text>
+                        <Text style={styles.callBtnText}>{ins.name} 접수 전화</Text>
+                      </Pressable>
+                      <Pressable
+                        style={({ pressed }) => [
+                          styles.doneBtn,
+                          insuranceCalled && { backgroundColor: "#38A169" },
+                          pressed && { opacity: 0.85 },
+                        ]}
+                        onPress={() => setInsuranceCalled(true)}
+                      >
+                        <Text style={[styles.doneBtnText, insuranceCalled && { color: "#FFFFFF" }]}>
+                          {insuranceCalled ? "✓ 완료" : "접수 완료"}
+                        </Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                );
+              })()}
+            </View>
+
+            <Pressable
+              style={({ pressed }) => [styles.nextBtn, pressed && { opacity: 0.85 }]}
+              onPress={() => {
+                if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                const detectedLocation = "서울특별시 강남구 테헤란로 152";
+                setLocation(detectedLocation);
+                sendGuardianAlert("사고 발생", detectedLocation);
+                setCurrentStep("type");
+              }}
+            >
+              <Text style={styles.nextBtnText}>다음 단계 (사고 유형 선택)</Text>
+              <IconSymbol name="arrow.right" size={18} color="#FFFFFF" />
+            </Pressable>
+          </View>
+        )}
+
+        {/* STEP 2: 사고 유형 선택 */}
         {currentStep === "type" && (
           <View>
             <View style={styles.stepHeader}>
@@ -390,7 +540,7 @@ export default function AccidentReportScreen() {
 
             <View style={styles.evidenceProgress}>
               <Text style={styles.evidenceProgressText}>
-                {completedEvidence.length} / {EVIDENCE_STEPS.length} 완료
+              {completedEvidence.length} / 3 완료
               </Text>
               <View style={styles.evidenceProgressBar}>
                 <View
@@ -435,7 +585,7 @@ export default function AccidentReportScreen() {
                     )}
                   </View>
 
-                  {isActive && !isCompleted && ev.step !== 4 && (
+                  {isActive && !isCompleted && (
                     <View style={styles.evidenceTips}>
                       {ev.tips.map((tip, i) => (
                         <View key={i} style={styles.evidenceTipRow}>
@@ -457,166 +607,7 @@ export default function AccidentReportScreen() {
                     </View>
                   )}
 
-                  {/* 4단계 전용 확장 UI: 경찰 신고 + 보험사 접수 */}
-                  {isActive && !isCompleted && ev.step === 4 && (
-                    <View style={styles.reportSection}>
-                      {/* 112 신고 버튼 */}
-                      <View style={styles.reportBlock}>
-                        <View style={styles.reportBlockHeader}>
-                          <View style={[styles.reportStepBadge, { backgroundColor: policeReported ? "#38A169" : "#E53E3E" }]}>
-                            <Text style={styles.reportStepBadgeText}>{policeReported ? "✓" : "1"}</Text>
-                          </View>
-                          <Text style={styles.reportBlockTitle}>경찰 신고 (112)</Text>
-                          {policeReported && <Text style={styles.reportDoneLabel}>신고 완료</Text>}
-                        </View>
-                        <Text style={styles.reportBlockDesc}>부상자가 있거나 상대방이 도주한 경우 반드시 신고하세요. 신고 접수 번호를 보험사에 전달해야 합니다.</Text>
-                        <View style={styles.reportBtnRow}>
-                          <Pressable
-                            style={({ pressed }) => [styles.callBtn, { backgroundColor: "#E53E3E" }, pressed && { opacity: 0.85 }]}
-                            onPress={() => {
-                              if (Platform.OS !== "web") {
-                                Linking.openURL("tel:112");
-                              } else {
-                                Alert.alert("112 신고", "112에 전화를 연결합니다.");
-                              }
-                            }}
-                          >
-                            <Text style={styles.callBtnIcon}>📞</Text>
-                            <Text style={styles.callBtnText}>112 신고 전화</Text>
-                          </Pressable>
-                          <Pressable
-                            style={({ pressed }) => [
-                              styles.doneBtn,
-                              policeReported && { backgroundColor: "#38A169" },
-                              pressed && { opacity: 0.85 },
-                            ]}
-                            onPress={() => setPoliceReported(true)}
-                          >
-                            <Text style={[styles.doneBtnText, policeReported && { color: "#FFFFFF" }]}>
-                              {policeReported ? "✓ 완료" : "신고 완료"}
-                            </Text>
-                          </Pressable>
-                        </View>
-                      </View>
 
-                      {/* 보험사 접수 */}
-                      <View style={styles.reportBlock}>
-                        <View style={styles.reportBlockHeader}>
-                          <View style={[styles.reportStepBadge, { backgroundColor: insuranceCalled ? "#38A169" : "#DD6B20" }]}>
-                            <Text style={styles.reportStepBadgeText}>{insuranceCalled ? "✓" : "2"}</Text>
-                          </View>
-                          <Text style={styles.reportBlockTitle}>보험사 사고 접수</Text>
-                          {insuranceCalled && <Text style={styles.reportDoneLabel}>접수 완료</Text>}
-                        </View>
-                        <Text style={styles.reportBlockDesc}>내 보험사를 선택하고 사고 접수 전화를 하세요. 접수 즉시 출동 서비스가 시작됩니다.</Text>
-
-                        {/* 자동 조회 안내 배너 */}
-                        {selectedInsurance && (() => {
-                          const autoIns = INSURANCE_COMPANIES.find(i => i.id === selectedInsurance);
-                          return (
-                            <View style={{
-                              flexDirection: "row",
-                              alignItems: "center",
-                              backgroundColor: "#EBF8FF",
-                              borderRadius: 8,
-                              padding: 10,
-                              marginBottom: 10,
-                              borderLeftWidth: 3,
-                              borderLeftColor: "#3182CE",
-                              gap: 8,
-                            }}>
-                              <Text style={{ fontSize: 16 }}>🔍</Text>
-                              <View style={{ flex: 1 }}>
-                                <Text style={{ fontSize: 12, fontWeight: "700", color: "#2B6CB0" }}>
-                                  등록된 차량 정보를 기반으로 {autoIns?.name}에 가입된 것으로 보입니다.
-                                </Text>
-                                <Text style={{ fontSize: 11, color: "#4A90D9", marginTop: 2 }}>
-                                  다른 보험사라면 아래에서 직접 선택해 주세요.
-                                </Text>
-                              </View>
-                            </View>
-                          );
-                        })()}
-
-                        {/* 보험사 선택 그리드 */}
-                        <View style={styles.insuranceGrid}>
-                          {INSURANCE_COMPANIES.map((ins) => (
-                            <Pressable
-                              key={ins.id}
-                              style={({ pressed }) => [
-                                styles.insuranceCard,
-                                selectedInsurance === ins.id && { borderColor: ins.color, borderWidth: 2, backgroundColor: ins.color + "10" },
-                                pressed && { opacity: 0.8 },
-                              ]}
-                              onPress={() => setSelectedInsurance(ins.id)}
-                            >
-                              <Text style={styles.insuranceLogo}>{ins.logo}</Text>
-                              <Text style={[styles.insuranceName, selectedInsurance === ins.id && { color: ins.color, fontWeight: "700" }]}>
-                                {ins.name}
-                              </Text>
-                            </Pressable>
-                          ))}
-                        </View>
-
-                        {selectedInsurance && (() => {
-                          const ins = INSURANCE_COMPANIES.find(i => i.id === selectedInsurance)!;
-                          return (
-                            <View style={styles.insuranceCallBox}>
-                              <Text style={styles.insuranceCallNum}>{ins.tel}</Text>
-                              <View style={styles.reportBtnRow}>
-                                <Pressable
-                                  style={({ pressed }) => [styles.callBtn, { backgroundColor: ins.color, flex: 1 }, pressed && { opacity: 0.85 }]}
-                                  onPress={() => {
-                                    if (Platform.OS !== "web") {
-                                      Linking.openURL(`tel:${ins.tel.replace(/-/g, "")}`);
-                                    } else {
-                                      Alert.alert("보험사 접수", `${ins.name} ${ins.tel}에 연결합니다.`);
-                                    }
-                                  }}
-                                >
-                                  <Text style={styles.callBtnIcon}>📞</Text>
-                                  <Text style={styles.callBtnText}>{ins.name} 접수 전화</Text>
-                                </Pressable>
-                                <Pressable
-                                  style={({ pressed }) => [
-                                    styles.doneBtn,
-                                    insuranceCalled && { backgroundColor: "#38A169" },
-                                    pressed && { opacity: 0.85 },
-                                  ]}
-                                  onPress={() => setInsuranceCalled(true)}
-                                >
-                                  <Text style={[styles.doneBtnText, insuranceCalled && { color: "#FFFFFF" }]}>
-                                    {insuranceCalled ? "✓ 완료" : "접수 완료"}
-                                  </Text>
-                                </Pressable>
-                              </View>
-                            </View>
-                          );
-                        })()}
-                      </View>
-
-                      {/* 완료 버튼 */}
-                      <Pressable
-                        style={({ pressed }) => [
-                          styles.evidenceCompleteBtn,
-                          { backgroundColor: (policeReported || insuranceCalled) ? "#DD6B20" : "#CBD5E0" },
-                          pressed && { opacity: 0.85 },
-                        ]}
-                        onPress={() => {
-                          if (!policeReported && !insuranceCalled) {
-                            Alert.alert("확인", "112 신고 또는 보험사 접수 중 하나는 완료해야 합니다.");
-                            return;
-                          }
-                          handleCompleteEvidence(idx);
-                        }}
-                      >
-                        <IconSymbol name="checkmark.circle.fill" size={16} color="#FFFFFF" />
-                        <Text style={styles.evidenceCompleteBtnText}>
-                          {policeReported && insuranceCalled ? "신고 & 접수 완료" : policeReported ? "신고 완료 (보험 접수 권장)" : "접수 완료 (신고 권장)"}
-                        </Text>
-                      </Pressable>
-                    </View>
-                  )}
                 </View>
               );
             })}
