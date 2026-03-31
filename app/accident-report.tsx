@@ -510,6 +510,34 @@ export default function AccidentReportScreen() {
                         </View>
                         <Text style={styles.reportBlockDesc}>내 보험사를 선택하고 사고 접수 전화를 하세요. 접수 즉시 출동 서비스가 시작됩니다.</Text>
 
+                        {/* 자동 조회 안내 배너 */}
+                        {selectedInsurance && (() => {
+                          const autoIns = INSURANCE_COMPANIES.find(i => i.id === selectedInsurance);
+                          return (
+                            <View style={{
+                              flexDirection: "row",
+                              alignItems: "center",
+                              backgroundColor: "#EBF8FF",
+                              borderRadius: 8,
+                              padding: 10,
+                              marginBottom: 10,
+                              borderLeftWidth: 3,
+                              borderLeftColor: "#3182CE",
+                              gap: 8,
+                            }}>
+                              <Text style={{ fontSize: 16 }}>🔍</Text>
+                              <View style={{ flex: 1 }}>
+                                <Text style={{ fontSize: 12, fontWeight: "700", color: "#2B6CB0" }}>
+                                  등록된 차량 정보를 기반으로 {autoIns?.name}에 가입된 것으로 보입니다.
+                                </Text>
+                                <Text style={{ fontSize: 11, color: "#4A90D9", marginTop: 2 }}>
+                                  다른 보험사라면 아래에서 직접 선택해 주세요.
+                                </Text>
+                              </View>
+                            </View>
+                          );
+                        })()}
+
                         {/* 보험사 선택 그리드 */}
                         <View style={styles.insuranceGrid}>
                           {INSURANCE_COMPANIES.map((ins) => (
