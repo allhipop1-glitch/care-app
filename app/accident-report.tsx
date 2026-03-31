@@ -127,6 +127,31 @@ export default function AccidentReportScreen() {
   const [policeReported, setPoliceReported] = useState(false);
   const [selectedInsurance, setSelectedInsurance] = useState<string | null>(null);
   const [insuranceCalled, setInsuranceCalled] = useState(false);
+  const [guardianAlertSent, setGuardianAlertSent] = useState(false);
+  const [guardianCount, setGuardianCount] = useState(0);
+
+  // Guardian 자동 알림 발송 함수
+  const sendGuardianAlert = async (accidentType: string, locationStr: string) => {
+    try {
+      const raw = await AsyncStorage.getItem("guardians");
+      if (!raw) return;
+      const guardians: { id: string; name: string; phone: string; relation: string; notify: boolean }[] = JSON.parse(raw);
+      const notifyList = guardians.filter((g) => g.notify);
+      if (notifyList.length === 0) return;
+      setGuardianCount(notifyList.length);
+      setGuardianAlertSent(true);
+      // 실제 서비스: expo-sms 또는 서버 API로 SMS 발송
+      // 현재는 Alert으로 시뮬레이션
+      const names = notifyList.map((g) => g.name).join(", ");
+      Alert.alert(
+        "🚨 보호자 자동 알림 발송",
+        `${names}님(${notifyList.length}명)에게 사고 발생 알림과 현재 위치(${locationStr})를 자동 발송했습니다.`,
+        [{ text: "확인" }]
+      );
+    } catch (e) {
+      console.log("Guardian 알림 오류", e);
+    }
+  };
 
   // 등록된 보험사 자동 선택
   useEffect(() => {
@@ -169,8 +194,11 @@ export default function AccidentReportScreen() {
   const handleNextFromType = () => {
     if (!selectedType) return;
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    setLocation("서울특별시 강남구 테헤란로 152");
+    const detectedLocation = "서울특별시 강남구 테헤란로 152";
+    setLocation(detectedLocation);
     setCurrentStep("location");
+    // 사고 유형 선택 → 다음 단계 진입 시 Guardian 자동 알림 발송
+    sendGuardianAlert(selectedType, detectedLocation);
   };
 
   const handleNextFromLocation = () => {
@@ -272,6 +300,42 @@ export default function AccidentReportScreen() {
         {/* STEP 2: 위치 확인 */}
         {currentStep === "location" && (
           <View>
+            {/* Guardian 자동 알림 발송 완료 배너 */}
+            {guardianAlertSent && guardianCount > 0 && (
+              <View style={{
+                backgroundColor: "#FFF5F5",
+                borderWidth: 1.5,
+                borderColor: "#FC8181",
+                borderRadius: 12,
+                padding: 14,
+                marginBottom: 16,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 10,
+              }}>
+                <Text style={{ fontSize: 22 }}>🚨</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 14, fontWeight: "700", color: "#C53030" }}>보호자 {guardianCount}명에게 자동 알림 발송 완료</Text>
+                  <Text style={{ fontSize: 12, color: "#718096", marginTop: 2 }}>Guardian에 등록된 보호자에게 사고 위치와 함께 긴급 알림이 발송되었습니다.</Text>
+                </View>
+              </View>
+            )}
+            {!guardianAlertSent && (
+              <View style={{
+                backgroundColor: "#EBF8FF",
+                borderWidth: 1,
+                borderColor: "#90CDF4",
+                borderRadius: 12,
+                padding: 12,
+                marginBottom: 16,
+                flexDirection: "row",
+                alignItems: "center",
+                gap: 10,
+              }}>
+                <Text style={{ fontSize: 18 }}>👥</Text>
+                <Text style={{ fontSize: 12, color: "#2B6CB0", flex: 1 }}>Guardian에 보호자를 등록하면 사고 시 자동으로 알림을 발송합니다.</Text>
+              </View>
+            )}
             <View style={styles.stepHeader}>
               <Text style={styles.stepTitle}>사고 위치를 확인해주세요</Text>
               <Text style={styles.stepDesc}>GPS로 자동 감지된 위치입니다. 수정이 필요하면 직접 입력하세요.</Text>
