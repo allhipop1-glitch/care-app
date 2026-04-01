@@ -51,7 +51,17 @@ const MAPPING = {
   "magnifyingglass": "search",
   "heart.fill": "favorite",
   "flame.fill": "local-fire-department",
-} as IconMapping;
+  // Guardian
+  "person.2.fill": "group",
+  "person.badge.plus": "person-add",
+  "shield.checkmark.fill": "verified-user",
+  "sos.fill": "sos",
+  "waveform.path.ecg": "monitor-heart",
+  "antenna.radiowaves.left.and.right": "wifi-tethering",
+  "checkmark.shield.fill": "security",
+  "ellipsis": "more-horiz",
+  "minus.circle.fill": "remove-circle",
+} as unknown as IconMapping;
 
 /**
  * An icon component that uses native SF Symbols on iOS, and Material Icons on Android and web.

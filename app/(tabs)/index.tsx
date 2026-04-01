@@ -6,6 +6,7 @@ import { Platform } from "react-native";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { GuardianStore, Guardian } from "@/lib/guardian-store";
 
 const DAILY_TIPS = [
   {
@@ -67,6 +68,17 @@ export default function HomeScreen() {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
   };
+
+  // ─── 가디언 상태 ──────────────────────────────────────────────────────────────
+  const [guardians, setGuardians] = useState<Guardian[]>([]);
+
+  useEffect(() => {
+    const load = async () => {
+      const list = await GuardianStore.getAll();
+      setGuardians(list);
+    };
+    load();
+  }, []);
 
   const handleSOS = () => {
     if (Platform.OS !== "web") {
@@ -178,6 +190,38 @@ export default function HomeScreen() {
             <Text style={styles.dangerBannerLink}>확인 →</Text>
           </Pressable>
         </View>
+
+        {/* 가디언 현황 위젯 */}
+        <Pressable
+          style={({ pressed }) => [styles.guardianWidget, pressed && { opacity: 0.85 }]}
+          onPress={() => router.push("/guardian" as never)}
+        >
+          <View style={styles.guardianWidgetLeft}>
+            <View style={styles.guardianWidgetIcon}>
+              <IconSymbol name="person.2.fill" size={20} color="#3182CE" />
+            </View>
+            <View>
+              <Text style={styles.guardianWidgetTitle}>가디언 알림 네트워크</Text>
+              <Text style={styles.guardianWidgetSub}>
+                {guardians.length > 0
+                  ? `${guardians.length}명 등록됨 · 사고 시 즉시 알림`
+                  : "가족·연인·친구를 등록하세요"}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.guardianWidgetRight}>
+            {guardians.length > 0 ? (
+              <View style={styles.guardianActiveDot}>
+                <View style={styles.guardianActiveDotInner} />
+              </View>
+            ) : (
+              <View style={styles.guardianAddBadge}>
+                <Text style={styles.guardianAddBadgeText}>등록</Text>
+              </View>
+            )}
+            <IconSymbol name="chevron.right" size={16} color="#A0AEC0" />
+          </View>
+        </Pressable>
 
         {/* SOS 긴급 접수 버튼 */}
         <View style={styles.sosSection}>
@@ -688,5 +732,78 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#718096",
     flex: 1,
+  },
+  // ─── 가디언 위젯 ─────────────────────────────────────────────────────────────────────────────
+  guardianWidget: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#EBF4FF",
+  },
+  guardianWidgetLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flex: 1,
+  },
+  guardianWidgetIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    backgroundColor: "#EBF4FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  guardianWidgetTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#1A2B4C",
+    marginBottom: 2,
+  },
+  guardianWidgetSub: {
+    fontSize: 11,
+    color: "#718096",
+  },
+  guardianWidgetRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  guardianActiveDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#C6F6D5",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  guardianActiveDotInner: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#38A169",
+  },
+  guardianAddBadge: {
+    backgroundColor: "#3182CE",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  guardianAddBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
 });
