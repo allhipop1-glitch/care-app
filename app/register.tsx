@@ -52,6 +52,31 @@ export default function RegisterScreen() {
   const [selectedInsurance, setSelectedInsurance] = useState<string[]>([]);
   const [policyNumber, setPolicyNumber] = useState("");
 
+  // 보험 단계 하위 상태
+  // "detecting" : 자동 감지 애니메이션
+  // "confirm"   : 감지된 보험사 확인 (예/아니오)
+  // "manual"    : 직접 선택
+  const [insuranceSubStep, setInsuranceSubStep] = useState<"detecting" | "confirm" | "manual">("detecting");
+  const [detectedInsurance, setDetectedInsurance] = useState<string | null>(null);
+
+  // 차량번호 기반 보험사 시뮬레이션 감지 (1초 딥)
+  const simulateDetection = (plate: string) => {
+    setInsuranceSubStep("detecting");
+    setDetectedInsurance(null);
+    setTimeout(() => {
+      // 실제 서비스라면 서버 API 호출. 여기서는 번호판 마지막 숫자로 보험사 매핑 시뮬레이션
+      const lastDigit = parseInt(plate.replace(/\D/g, "").slice(-1)) || 0;
+      const mockMap: Record<number, string> = {
+        0: "samsung", 1: "hyundai", 2: "kb", 3: "db",
+        4: "meritz", 5: "lotte", 6: "hanwha", 7: "samsung",
+        8: "hyundai", 9: "kb",
+      };
+      const detected = mockMap[lastDigit] ?? "samsung";
+      setDetectedInsurance(detected);
+      setInsuranceSubStep("confirm");
+    }, 1200);
+  };
+
   const [showCharPicker, setShowCharPicker] = useState(false);
   const numRef = useRef<TextInput>(null);
   const phoneRef = useRef<TextInput>(null);
@@ -93,6 +118,8 @@ export default function RegisterScreen() {
         return;
       }
       setStep("보험 등록");
+      // 보험 단계 진입 시 자동 감지 시작
+      simulateDetection(fullPlate);
     } else {
       // 완료 — AsyncStorage에 저장
       const userData = {
@@ -322,71 +349,146 @@ export default function RegisterScreen() {
           {/* STEP 3: 보험 등록 */}
           {step === "보험 등록" && (
             <View style={styles.stepContent}>
-              <Text style={styles.stepTitle}>보험 가입 정보를 등록하세요</Text>
-              <Text style={styles.stepDesc}>
-                가입된 보험사를 선택하면 사고 발생 시 즉시 접수 번호로 연결됩니다.
-              </Text>
 
-              <Text style={styles.sectionLabel}>가입 보험사 선택 <Text style={styles.optional}>(복수 선택 가능)</Text></Text>
-              <View style={styles.insuranceGrid}>
-                {INSURANCE_LIST.map((ins) => {
-                  const selected = selectedInsurance.includes(ins.id);
-                  return (
-                    <Pressable
-                      key={ins.id}
-                      style={({ pressed }) => [
-                        styles.insuranceCard,
-                        selected && { borderColor: ins.color, backgroundColor: ins.color + "12" },
-                        pressed && { opacity: 0.8 },
-                      ]}
-                      onPress={() => toggleInsurance(ins.id)}
-                    >
-                      <View style={[styles.insuranceCheckDot, selected && { backgroundColor: ins.color }]}>
-                        {selected && <Text style={styles.checkMark}>✓</Text>}
+              {/* ── 3-1: 자동 감지 중 ── */}
+              {insuranceSubStep === "detecting" && (
+                <View style={styles.detectingBox}>
+                  <Text style={styles.detectingIcon}>🔍</Text>
+                  <Text style={styles.detectingTitle}>보험사를 조회 중입니다</Text>
+                  <Text style={styles.detectingDesc}>
+                    차량번호 <Text style={{ fontWeight: "800", color: "#1A2B4C" }}>{fullPlate}</Text>를{"\n"}기반으로 가입 보험사를 확인하고 있어요.
+                  </Text>
+                  {/* 로딩 점 */}
+                  <View style={styles.dotRow}>
+                    <View style={[styles.dot, styles.dotActive]} />
+                    <View style={styles.dot} />
+                    <View style={styles.dot} />
+                  </View>
+                </View>
+              )}
+
+              {/* ── 3-2: 감지 결과 확인 (예/아니오) ── */}
+              {insuranceSubStep === "confirm" && detectedInsurance && (() => {
+                const ins = INSURANCE_LIST.find(i => i.id === detectedInsurance)!;
+                return (
+                  <View style={styles.confirmBox}>
+                    <View style={styles.confirmIconWrap}>
+                      <Text style={styles.confirmBigIcon}>🛡️</Text>
+                    </View>
+                    <Text style={styles.confirmTitle}>보험사를 찾았어요!</Text>
+                    <Text style={styles.confirmDesc}>
+                      차량번호 <Text style={{ fontWeight: "800", color: "#1A2B4C" }}>{fullPlate}</Text>는{"\n"}
+                      <Text style={[styles.confirmInsName, { color: ins.color }]}>{ins.name}</Text>에 가입된 것으로 보입니다.
+                    </Text>
+
+                    <View style={[styles.confirmInsCard, { borderColor: ins.color }]}>
+                      <View style={[styles.confirmInsColorBar, { backgroundColor: ins.color }]} />
+                      <View style={styles.confirmInsInfo}>
+                        <Text style={[styles.confirmInsCardName, { color: ins.color }]}>{ins.name}</Text>
+                        <Text style={styles.confirmInsTel}>📞 {ins.tel}</Text>
                       </View>
-                      <Text style={[styles.insuranceName, selected && { color: ins.color, fontWeight: "700" }]}>
-                        {ins.name}
-                      </Text>
-                      <Text style={styles.insuranceTel}>{ins.tel}</Text>
+                      <Text style={styles.confirmInsCheck}>✓</Text>
+                    </View>
+
+                    <Text style={styles.confirmQuestion}>이 보험사가 맞나요?</Text>
+
+                    <View style={styles.confirmBtnRow}>
+                      <Pressable
+                        style={({ pressed }) => [styles.confirmBtnNo, pressed && { opacity: 0.8 }]}
+                        onPress={() => {
+                          if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                          setInsuranceSubStep("manual");
+                        }}
+                      >
+                        <Text style={styles.confirmBtnNoText}>아니오, 직접 선택할게요</Text>
+                      </Pressable>
+                      <Pressable
+                        style={({ pressed }) => [styles.confirmBtnYes, { backgroundColor: ins.color }, pressed && { opacity: 0.85 }]}
+                        onPress={async () => {
+                          if (Platform.OS !== "web") Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                          setSelectedInsurance([ins.id]);
+                          const userData = {
+                            plate: fullPlate, name, phone, birthYear,
+                            insurance: [ins.id], policyNumber,
+                            registeredAt: new Date().toISOString(),
+                          };
+                          await AsyncStorage.setItem("userProfile", JSON.stringify(userData));
+                          await AsyncStorage.setItem("onboardingDone", "true");
+                          router.replace("/(tabs)");
+                        }}
+                      >
+                        <Text style={styles.confirmBtnYesText}>네, 맞아요!</Text>
+                      </Pressable>
+                    </View>
+
+                    <Pressable style={styles.skipBtn} onPress={handleSkipInsurance}>
+                      <Text style={styles.skipBtnText}>나중에 등록하기</Text>
                     </Pressable>
-                  );
-                })}
-              </View>
+                  </View>
+                );
+              })()}
 
-              <View style={styles.formGroup}>
-                <Text style={styles.formLabel}>증권 번호 <Text style={styles.optional}>(선택)</Text></Text>
-                <TextInput
-                  style={styles.formInput}
-                  value={policyNumber}
-                  onChangeText={setPolicyNumber}
-                  placeholder="보험 증권 번호를 입력하세요"
-                  placeholderTextColor="#A0AEC0"
-                  returnKeyType="done"
-                />
-              </View>
+              {/* ── 3-3: 직접 선택 ── */}
+              {insuranceSubStep === "manual" && (
+                <View>
+                  <Text style={styles.stepTitle}>보험사를 직접 선택하세요</Text>
+                  <Text style={styles.stepDesc}>
+                    가입된 보험사를 선택하면 사고 발생 시 즉시 접수 번호로 연결됩니다.
+                  </Text>
 
-              <Pressable style={styles.skipBtn} onPress={handleSkipInsurance}>
-                <Text style={styles.skipBtnText}>나중에 등록하기</Text>
-              </Pressable>
+                  <View style={[styles.insuranceGrid, { marginTop: 8 }]}>
+                    {INSURANCE_LIST.map((ins) => {
+                      const selected = selectedInsurance.includes(ins.id);
+                      return (
+                        <Pressable
+                          key={ins.id}
+                          style={({ pressed }) => [
+                            styles.insuranceCard,
+                            selected && { borderColor: ins.color, backgroundColor: ins.color + "12" },
+                            pressed && { opacity: 0.8 },
+                          ]}
+                          onPress={() => toggleInsurance(ins.id)}
+                        >
+                          <View style={[styles.insuranceCheckDot, selected && { backgroundColor: ins.color }]}>
+                            {selected && <Text style={styles.checkMark}>✓</Text>}
+                          </View>
+                          <Text style={[styles.insuranceName, selected && { color: ins.color, fontWeight: "700" }]}>
+                            {ins.name}
+                          </Text>
+                          <Text style={styles.insuranceTel}>{ins.tel}</Text>
+                        </Pressable>
+                      );
+                    })}
+                  </View>
+
+                  <Pressable style={styles.skipBtn} onPress={handleSkipInsurance}>
+                    <Text style={styles.skipBtnText}>나중에 등록하기</Text>
+                  </Pressable>
+                </View>
+              )}
+
             </View>
           )}
         </ScrollView>
 
-        {/* 하단 버튼 */}
-        <View style={styles.bottomBar}>
-          <Pressable
-            style={({ pressed }) => [
-              styles.nextBtn,
-              !isPlateValid && step === "차량 등록" && styles.nextBtnDisabled,
-              pressed && { opacity: 0.88 },
-            ]}
-            onPress={handleNext}
-          >
-            <Text style={styles.nextBtnText}>
-              {step === "보험 등록" ? "등록 완료 →" : "다음 →"}
-            </Text>
-          </Pressable>
-        </View>
+        {/* 하단 버튼 — 보험 단계 confirm/detecting 에서는 숨김 */}
+        {!(step === "보험 등록" && (insuranceSubStep === "detecting" || insuranceSubStep === "confirm")) && (
+          <View style={styles.bottomBar}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.nextBtn,
+                !isPlateValid && step === "차량 등록" && styles.nextBtnDisabled,
+                insuranceSubStep === "manual" && selectedInsurance.length === 0 && styles.nextBtnDisabled,
+                pressed && { opacity: 0.88 },
+              ]}
+              onPress={handleNext}
+            >
+              <Text style={styles.nextBtnText}>
+                {step === "보험 등록" ? "등록 완료 →" : "다음 →"}
+              </Text>
+            </Pressable>
+          </View>
+        )}
       </KeyboardAvoidingView>
     </ScreenContainer>
   );
@@ -773,5 +875,151 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#FFFFFF",
     letterSpacing: 0.5,
+  },
+  // ── 보험 자동감지 스타일 ──
+  detectingBox: {
+    alignItems: "center",
+    paddingVertical: 40,
+    gap: 14,
+  },
+  detectingIcon: {
+    fontSize: 52,
+  },
+  detectingTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#1A2B4C",
+    textAlign: "center",
+  },
+  detectingDesc: {
+    fontSize: 14,
+    color: "#718096",
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  dotRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 8,
+  },
+  dot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#E2E8F0",
+  },
+  dotActive: {
+    backgroundColor: "#1A2B4C",
+  },
+  // ── 보험 확인 스타일 ──
+  confirmBox: {
+    alignItems: "center",
+    gap: 14,
+    paddingVertical: 8,
+  },
+  confirmIconWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#EBF8FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  confirmBigIcon: {
+    fontSize: 40,
+  },
+  confirmTitle: {
+    fontSize: 22,
+    fontWeight: "900",
+    color: "#1A2B4C",
+    textAlign: "center",
+  },
+  confirmDesc: {
+    fontSize: 15,
+    color: "#4A5568",
+    textAlign: "center",
+    lineHeight: 24,
+  },
+  confirmInsName: {
+    fontWeight: "800",
+    fontSize: 15,
+  },
+  confirmInsCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    width: "100%",
+    borderRadius: 14,
+    borderWidth: 2,
+    backgroundColor: "#FFFFFF",
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  confirmInsColorBar: {
+    width: 6,
+    alignSelf: "stretch",
+  },
+  confirmInsInfo: {
+    flex: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    gap: 4,
+  },
+  confirmInsCardName: {
+    fontSize: 17,
+    fontWeight: "800",
+  },
+  confirmInsTel: {
+    fontSize: 13,
+    color: "#718096",
+  },
+  confirmInsCheck: {
+    fontSize: 22,
+    color: "#38A169",
+    fontWeight: "900",
+    paddingRight: 16,
+  },
+  confirmQuestion: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#2D3748",
+    textAlign: "center",
+    marginTop: 4,
+  },
+  confirmBtnRow: {
+    flexDirection: "row",
+    gap: 10,
+    width: "100%",
+  },
+  confirmBtnNo: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: "#CBD5E0",
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  confirmBtnNoText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#4A5568",
+    textAlign: "center",
+  },
+  confirmBtnYes: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  confirmBtnYesText: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#FFFFFF",
   },
 });
