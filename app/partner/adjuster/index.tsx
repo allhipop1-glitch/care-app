@@ -40,20 +40,6 @@ export default function AdjusterPortal() {
       partnerName="하나손해사정"
       navItems={NAV}
     >
-      {/* 신규 평가 요청 알림 */}
-      {NEW_REQUESTS.length > 0 && (
-        <View style={{ backgroundColor: "#E6FFFA", borderWidth: 2, borderColor: "#319795", borderRadius: 12, padding: 14, marginBottom: 20, flexDirection: "row", alignItems: "center", gap: 12 }}>
-          <Text style={{ fontSize: 24 }}>📋</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 15, fontWeight: "800", color: "#319795" }}>신규 손해 평가 요청 {NEW_REQUESTS.length}건</Text>
-            <Text style={{ fontSize: 12, color: "#718096", marginTop: 2 }}>수리비·치료비·격락손해 평가를 진행해주세요. 서류 검토 후 평가서를 작성해주세요.</Text>
-          </View>
-          <View style={{ backgroundColor: "#319795", width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" }}>
-            <Text style={{ color: "#FFFFFF", fontSize: 14, fontWeight: "800" }}>{NEW_REQUESTS.length}</Text>
-          </View>
-        </View>
-      )}
-
       {/* Stats */}
       <View style={{ flexDirection: "row", gap: 16, marginBottom: 24, flexWrap: "wrap" }}>
         <StatCard label="신규 평가 요청" value="1건" color="#DD6B20" icon="📩" />

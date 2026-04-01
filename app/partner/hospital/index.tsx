@@ -35,15 +35,6 @@ export default function HospitalPortal() {
       partnerName="강남세브란스 정형외과"
       navItems={NAV}
     >
-      {/* 서류 발급 대기 알림 */}
-      <View style={{ backgroundColor: "#FFFAF0", borderWidth: 2, borderColor: "#DD6B20", borderRadius: 12, padding: 14, marginBottom: 20, flexDirection: "row", alignItems: "center", gap: 12 }}>
-        <Text style={{ fontSize: 24 }}>📋</Text>
-        <View style={{ flex: 1 }}>
-          <Text style={{ fontSize: 15, fontWeight: "800", color: "#DD6B20" }}>진단서/소견서 발급 대기 1건</Text>
-          <Text style={{ fontSize: 12, color: "#718096", marginTop: 2 }}>보험사 청구에 필요한 서류입니다. 신속하게 발급해주세요.</Text>
-        </View>
-      </View>
-
       {/* Stats */}
       <View style={{ flexDirection: "row", gap: 16, marginBottom: 24, flexWrap: "wrap" }}>
         <StatCard label="오늘 예약" value="3건" color="#D53F8C" icon="📅" />

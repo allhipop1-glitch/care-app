@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import {
   ScrollView,
   Text,
@@ -9,13 +9,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
-  ActivityIndicator,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { ScreenContainer } from "@/components/screen-container";
-import { lookupInsuranceByPlate, type InsuranceInfo } from "@/lib/insurance-lookup";
 
 const STEPS = ["차량 등록", "내 정보", "보험 등록"] as const;
 type StepType = (typeof STEPS)[number];
@@ -54,11 +52,6 @@ export default function RegisterScreen() {
   const [selectedInsurance, setSelectedInsurance] = useState<string[]>([]);
   const [policyNumber, setPolicyNumber] = useState("");
 
-  // 보험사 자동 조회
-  const [lookupLoading, setLookupLoading] = useState(false);
-  const [autoInsurance, setAutoInsurance] = useState<InsuranceInfo | null>(null);
-  const [lookupDone, setLookupDone] = useState(false);
-
   const [showCharPicker, setShowCharPicker] = useState(false);
   const numRef = useRef<TextInput>(null);
   const phoneRef = useRef<TextInput>(null);
@@ -84,27 +77,6 @@ export default function RegisterScreen() {
   const fullPlate = `${plateRegion}${plateChar} ${plateNum}`.trim();
   // 완성된 한글(가-힣) 또는 조합 중인 자모(ㄱ-ㅎ, ㅏ-ㅣ) 모두 유효로 처리
   const isPlateValid = plateRegion.length >= 2 && /[가-힣ㄱ-ㅎㅏ-ㅣ]/.test(plateChar) && plateNum.length >= 4;
-
-  // 차량번호 완성 시 자동 조회
-  useEffect(() => {
-    if (isPlateValid && !lookupDone) {
-      setLookupLoading(true);
-      setAutoInsurance(null);
-      lookupInsuranceByPlate(fullPlate).then((result) => {
-        setLookupLoading(false);
-        setLookupDone(true);
-        if (result.status === "found") {
-          setAutoInsurance(result.insurance);
-          setSelectedInsurance([result.insurance.id]);
-        }
-      });
-    }
-    if (!isPlateValid) {
-      setLookupDone(false);
-      setAutoInsurance(null);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPlateValid, fullPlate]);
 
   const handleNext = async () => {
     if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -276,44 +248,12 @@ export default function RegisterScreen() {
                 )}
               </View>
 
-              {/* 보험사 자동 조회 결과 */}
-              {lookupLoading && (
-                <View style={[styles.infoBox, { backgroundColor: "#EBF8FF" }]}>
-                  <ActivityIndicator size="small" color="#3182CE" />
-                  <Text style={[styles.infoBoxText, { color: "#2B6CB0" }]}>
-                    차량번호로 보험사를 조회하고 있습니다...
-                  </Text>
-                </View>
-              )}
-              {autoInsurance && !lookupLoading && (
-                <View style={[styles.infoBox, { backgroundColor: autoInsurance.color + "12", borderWidth: 1.5, borderColor: autoInsurance.color + "40" }]}>
-                  <Text style={{ fontSize: 20 }}>🛡️</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.infoBoxText, { color: autoInsurance.color, fontWeight: "800", fontSize: 14 }]}>
-                      {autoInsurance.name} 가입 확인
-                    </Text>
-                    <Text style={[styles.infoBoxText, { color: "#718096", fontSize: 12 }]}>
-                      차량번호 기준 조회 완료 · 다음 단계에서 확인하세요
-                    </Text>
-                  </View>
-                </View>
-              )}
-              {!lookupLoading && !autoInsurance && lookupDone && (
-                <View style={[styles.infoBox, { backgroundColor: "#FFF5F5" }]}>
-                  <Text style={{ fontSize: 16 }}>❓</Text>
-                  <Text style={[styles.infoBoxText, { color: "#C53030" }]}>
-                    보험사를 자동으로 확인하지 못했습니다. 다음 단계에서 직접 선택해주세요.
-                  </Text>
-                </View>
-              )}
-              {!lookupLoading && !lookupDone && (
-                <View style={styles.infoBox}>
-                  <Text style={styles.infoBoxIcon}>💡</Text>
-                  <Text style={styles.infoBoxText}>
-                    차량 번호를 입력하면 가입 보험사를 자동으로 조회합니다.
-                  </Text>
-                </View>
-              )}
+              <View style={styles.infoBox}>
+                <Text style={styles.infoBoxIcon}>💡</Text>
+                <Text style={styles.infoBoxText}>
+                  차량 번호는 보험 처리, 렌터카 대차, 공업사 수리 예약에 자동으로 사용됩니다.
+                </Text>
+              </View>
             </View>
           )}
 
@@ -387,22 +327,7 @@ export default function RegisterScreen() {
                 가입된 보험사를 선택하면 사고 발생 시 즉시 접수 번호로 연결됩니다.
               </Text>
 
-              {/* 자동 조회 결과 배너 */}
-              {autoInsurance && (
-                <View style={[styles.infoBox, { backgroundColor: autoInsurance.color + "12", borderWidth: 1.5, borderColor: autoInsurance.color + "40" }]}>
-                  <Text style={{ fontSize: 20 }}>✅</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={[styles.infoBoxText, { color: autoInsurance.color, fontWeight: "800", fontSize: 14 }]}>
-                      {autoInsurance.name} 자동 선택됨
-                    </Text>
-                    <Text style={[styles.infoBoxText, { color: "#718096", fontSize: 12 }]}>
-                      차량번호 조회 결과입니다. 다르다면 아래에서 변경하세요.
-                    </Text>
-                  </View>
-                </View>
-              )}
-
-              <Text style={styles.sectionLabel}>가입 보험사 <Text style={styles.optional}>(복수 선택 가능)</Text></Text>
+              <Text style={styles.sectionLabel}>가입 보험사 선택 <Text style={styles.optional}>(복수 선택 가능)</Text></Text>
               <View style={styles.insuranceGrid}>
                 {INSURANCE_LIST.map((ins) => {
                   const selected = selectedInsurance.includes(ins.id);
