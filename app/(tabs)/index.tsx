@@ -242,6 +242,47 @@ export default function HomeScreen() {
           <Text style={styles.sosHint}>
             위치 자동 감지 · AI 파손 분석 · 전문가 즉시 연결
           </Text>
+
+          {/* 119 / 112 원터치 버튼 */}
+          <View style={styles.emergencyCallRow}>
+            <Pressable
+              style={({ pressed }) => [
+                styles.emergencyCallBtn,
+                { backgroundColor: "#E53E3E" },
+                pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] },
+              ]}
+              onPress={() => {
+                if (Platform.OS !== "web") {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  const { Linking } = require("react-native");
+                  Linking.openURL("tel:119");
+                }
+              }}
+            >
+              <Text style={styles.emergencyCallIcon}>🚑</Text>
+              <Text style={styles.emergencyCallNum}>119</Text>
+              <Text style={styles.emergencyCallLabel}>소방·구조</Text>
+            </Pressable>
+
+            <Pressable
+              style={({ pressed }) => [
+                styles.emergencyCallBtn,
+                { backgroundColor: "#2B6CB0" },
+                pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] },
+              ]}
+              onPress={() => {
+                if (Platform.OS !== "web") {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  const { Linking } = require("react-native");
+                  Linking.openURL("tel:112");
+                }
+              }}
+            >
+              <Text style={styles.emergencyCallIcon}>🚔</Text>
+              <Text style={styles.emergencyCallNum}>112</Text>
+              <Text style={styles.emergencyCallLabel}>경찰 신고</Text>
+            </Pressable>
+          </View>
         </View>
 
         {/* 오늘의 꿀팁 */}
@@ -805,5 +846,32 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "700",
     color: "#FFFFFF",
+  },
+  emergencyCallRow: {
+    flexDirection: "row",
+    gap: 12,
+    marginTop: 14,
+  },
+  emergencyCallBtn: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 14,
+    borderRadius: 16,
+    gap: 4,
+  },
+  emergencyCallIcon: {
+    fontSize: 22,
+  },
+  emergencyCallNum: {
+    fontSize: 22,
+    fontWeight: "900",
+    color: "#FFFFFF",
+    letterSpacing: 1,
+  },
+  emergencyCallLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "rgba(255,255,255,0.85)",
   },
 });

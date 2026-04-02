@@ -154,6 +154,89 @@ const PEDESTRIAN_EXPERT_CATEGORIES = [
   },
 ];
 
+// 주차장 사고 전용 증거 수집 단계
+const PARKING_EVIDENCE_STEPS = [
+  {
+    step: 1,
+    title: "차량 파손 사진 촬영",
+    desc: "긁힘·찌그러짐 부위를 클로즈업으로 촬영하세요. 수리비 산정의 핵심 근거입니다.",
+    icon: "camera.fill" as const,
+    color: "#3182CE",
+    tips: ["파손 부위 클로즈업 촬영", "상대 차량 번호판 촬영", "내 차량 전체 촬영 (파손 범위 확인)"],
+    urgent: false,
+  },
+  {
+    step: 2,
+    title: "CCTV 보존 신청",
+    desc: "주차장 관리실에 즉시 CCTV 보존을 요청하세요. 시간이 지나면 덮어씌워집니다.",
+    icon: "shield.fill" as const,
+    color: "#E53E3E",
+    tips: ["관리실에 즉시 방문 또는 전화", "사고 발생 시각 정확히 전달", "CCTV 보존 요청서 작성 (가능 시)"],
+    urgent: true,
+  },
+  {
+    step: 3,
+    title: "관리실 신고 & 상대방 확인",
+    desc: "관리실에 사고를 신고하고, 상대방 차량 정보를 확보하세요.",
+    icon: "person.fill" as const,
+    color: "#38A169",
+    tips: ["관리실 사고 접수 요청", "상대방 차량 번호·연락처 확보", "뺑소니 시 CCTV 확인 요청"],
+    urgent: false,
+  },
+  {
+    step: 4,
+    title: "보험 접수",
+    desc: "보험사에 사고 접수를 완료하세요. 주차장 사고는 과실 비율이 중요합니다.",
+    icon: "doc.text.fill" as const,
+    color: "#DD6B20",
+    tips: ["보험사 사고 접수 전화", "CCTV 영상 확보 후 제출", "주차장 측 과실 여부 확인"],
+    urgent: false,
+  },
+];
+
+// 주차장 사고 전용 전문가 카테고리
+const PARKING_EXPERT_CATEGORIES = [
+  {
+    id: "workshop",
+    label: "공업사",
+    icon: "wrench.fill" as const,
+    color: "#3182CE",
+    desc: "긁힘·찌그러짐 수리 · 파손 견적",
+    priority: true,
+    partners: [
+      { name: "강남 최고공업사", rating: 4.9, reviews: 312, distance: "0.8km", eta: "15분 내 연락", badge: "사고케어 인증" },
+      { name: "서초 KG모터스", rating: 4.7, reviews: 198, distance: "1.2km", eta: "20분 내 연락", badge: "빠른응답" },
+      { name: "역삼 현대직영", rating: 4.8, reviews: 445, distance: "2.1km", eta: "30분 내 연락", badge: "" },
+    ],
+  },
+  {
+    id: "adjuster",
+    label: "손해사정사",
+    icon: "doc.text.fill" as const,
+    color: "#DD6B20",
+    desc: "수리비·과실 비율 산정 · 보험 처리 지원",
+    priority: true,
+    partners: [
+      { name: "김민준 손해사정사", rating: 4.9, reviews: 234, distance: "온라인", eta: "무료 상담", badge: "교통사고 전문" },
+      { name: "이서연 손해사정사", rating: 4.8, reviews: 187, distance: "온라인", eta: "당일 상담", badge: "" },
+      { name: "박지훈 손해사정사", rating: 4.7, reviews: 142, distance: "온라인", eta: "무료 상담", badge: "빠른응답" },
+    ],
+  },
+  {
+    id: "lawyer",
+    label: "변호사",
+    icon: "shield.fill" as const,
+    color: "#805AD5",
+    desc: "뺑소니·과실 분쟁 법률 상담",
+    priority: false,
+    partners: [
+      { name: "교통사고 전문 법률사무소", rating: 4.9, reviews: 156, distance: "온라인", eta: "무료 상담", badge: "교통사고 전문" },
+      { name: "강남 로앤파트너스", rating: 4.8, reviews: 203, distance: "온라인", eta: "당일 상담", badge: "" },
+      { name: "서초 한결법률사무소", rating: 4.7, reviews: 98, distance: "온라인", eta: "무료 상담", badge: "빠른응답" },
+    ],
+  },
+];
+
 const ACCIDENT_TYPES = [
   { id: "rear", label: "추돌 사고", icon: "car.fill" as const, color: "#E53E3E" },
   { id: "side", label: "측면 충돌", icon: "car.2.fill" as const, color: "#DD6B20" },
@@ -213,10 +296,19 @@ export default function AccidentReportScreen() {
   const [injuryLevel, setInjuryLevel] = useState<"severe" | "minor" | "unknown" | null>(null);
   const [ambulanceCalled, setAmbulanceCalled] = useState(false);
 
-  // 보행자 사고 여부
+  // 사고 유형 파생 변수
   const isPedestrian = selectedType === "pedestrian";
-  const activeEvidenceSteps = isPedestrian ? PEDESTRIAN_EVIDENCE_STEPS : EVIDENCE_STEPS;
-  const activeExpertCategories = isPedestrian ? PEDESTRIAN_EXPERT_CATEGORIES : EXPERT_CATEGORIES;
+  const isParking = selectedType === "parking";
+  const activeEvidenceSteps = isPedestrian
+    ? PEDESTRIAN_EVIDENCE_STEPS
+    : isParking
+    ? PARKING_EVIDENCE_STEPS
+    : EVIDENCE_STEPS;
+  const activeExpertCategories = isPedestrian
+    ? PEDESTRIAN_EXPERT_CATEGORIES
+    : isParking
+    ? PARKING_EXPERT_CATEGORIES
+    : EXPERT_CATEGORIES;
 
   // 등록된 보험사 자동 선택
   useEffect(() => {
@@ -408,12 +500,15 @@ export default function AccidentReportScreen() {
         {currentStep === "evidence" && (
           <View>
             <View style={styles.stepHeader}>
-              <Text style={styles.stepTitle}>{isPedestrian ? "보행자 사고 조치" : "증거를 확보하세요"}</Text>
+              <Text style={styles.stepTitle}>
+                {isPedestrian ? "보행자 사고 조치" : isParking ? "주차장 사고 조치" : "증거를 확보하세요"}
+              </Text>
               <Text style={styles.stepDesc}>
                 {isPedestrian
                   ? "보행자 사고는 신속한 응급 조치가 중요합니다. 아래 순서대로 진행하세요."
-                  : "각 단계를 완료하면 체크하세요. 증거 확보가 보상 금액을 결정합니다."
-                }
+                  : isParking
+                  ? "CCTV 보존이 가장 중요합니다. 아래 순서대로 빠르게 진행하세요."
+                  : "각 단계를 완료하면 체크하세요. 증거 확보가 보상 금액을 결정합니다."}
               </Text>
             </View>
 
@@ -424,6 +519,17 @@ export default function AccidentReportScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.pedestrianUrgentTitle}>부상자가 있다면 절대 이동시키지 마세요</Text>
                   <Text style={styles.pedestrianUrgentDesc}>2차 부상 위험 · 119 먼저 신고 후 안내에 따르세요</Text>
+                </View>
+              </View>
+            )}
+
+            {/* 주차장 사고 긴급 배너 */}
+            {isParking && (
+              <View style={[styles.pedestrianUrgentBanner, { borderColor: "#E53E3E", backgroundColor: "#FFF5F5" }]}>
+                <Text style={styles.pedestrianUrgentIcon}>📹</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.pedestrianUrgentTitle, { color: "#E53E3E" }]}>CCTV는 덮어씌리기 전에 지금 즉시 보존 요청하세요</Text>
+                  <Text style={[styles.pedestrianUrgentDesc, { color: "#C53030" }]}>대부분의 주차장 CCTV는 24~48시간 후 자동 덮어씌립니다</Text>
                 </View>
               </View>
             )}
@@ -683,6 +789,8 @@ export default function AccidentReportScreen() {
               <Text style={styles.stepDesc}>
                 {isPedestrian
                   ? "병원·변호사·손해사정사를 우선 연결하세요. 치료와 합의금 산정이 중요합니다."
+                  : isParking
+                  ? "공업사·손해사정사를 우선 연결하세요. 수리비와 과실 비율 산정이 중요합니다."
                   : "필요한 분야를 선택하고 원하는 전문가에게 연결하세요"}
               </Text>
             </View>
@@ -694,6 +802,17 @@ export default function AccidentReportScreen() {
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.pedestrianUrgentTitle, { color: "#805AD5" }]}>병원 먼저 연결하세요</Text>
                   <Text style={[styles.pedestrianUrgentDesc, { color: "#553C9A" }]}>치료 후 변호사·손해사정사와 합의금을 산정하는 순서를 권장합니다</Text>
+                </View>
+              </View>
+            )}
+
+            {/* 주차장 사고 우선 안내 배너 */}
+            {isParking && (
+              <View style={[styles.pedestrianUrgentBanner, { borderColor: "#3182CE", backgroundColor: "#EBF8FF" }]}>
+                <Text style={styles.pedestrianUrgentIcon}>🔧</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.pedestrianUrgentTitle, { color: "#3182CE" }]}>공업사 먼저 연결하세요</Text>
+                  <Text style={[styles.pedestrianUrgentDesc, { color: "#2C5282" }]}>수리비 확정 후 손해사정사로 과실 비율을 산정하는 순서를 권장합니다</Text>
                 </View>
               </View>
             )}
@@ -714,8 +833,8 @@ export default function AccidentReportScreen() {
                   <Text style={[styles.categoryTabText, selectedCategory === cat.id && { color: "#FFFFFF" }]}>
                     {cat.label}
                   </Text>
-                  {isPedestrian && (cat as typeof PEDESTRIAN_EXPERT_CATEGORIES[number]).priority && (
-                    <View style={[styles.pedestrianPriorityBadge, { marginLeft: 2 }]}>
+                  {(isPedestrian || isParking) && (cat as { priority?: boolean }).priority && (
+                    <View style={[styles.pedestrianPriorityBadge, { marginLeft: 2, backgroundColor: isParking ? "#3182CE" : undefined }]}>
                       <Text style={{ fontSize: 9, fontWeight: "800", color: "#FFFFFF" }}>우선</Text>
                     </View>
                   )}
