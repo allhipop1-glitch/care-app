@@ -15,7 +15,6 @@ function formatMoney(val: string | number | null | undefined): string {
   if (!val) return "0원";
   const n = typeof val === "string" ? parseFloat(val) : val;
   if (isNaN(n)) return "0원";
-  if (n >= 10000000) return (n / 10000000).toFixed(1) + "천만원";
   if (n >= 10000) return Math.floor(n / 10000) + "만원";
   return n.toLocaleString("ko-KR") + "원";
 }
@@ -31,7 +30,13 @@ function getTimeAgo(dateStr: string | null | undefined): string {
   return `${Math.floor(h / 24)}일 전`;
 }
 
-const WEEKDAYS = ["일", "월", "화", "수", "목", "금", "토"];
+const ACCIDENT_TYPE_ICON: Record<string, string> = {
+  "차량 단독사고": "🚗",
+  "차량 대 차량": "💥",
+  "차량 대 보행자": "🚶",
+  "차량 대 이륜차": "🏍️",
+  "주차장 사고": "🅿️",
+};
 
 export function PartnerHome() {
   const router = useRouter();
@@ -48,10 +53,19 @@ export function PartnerHome() {
   });
   const [processingId, setProcessingId] = useState<number | null>(null);
 
-  const handleRespond = async (matchingId: number, action: "수락" | "거절") => {
+  const handleQuickAccept = async (matchingId: number) => {
     setProcessingId(matchingId);
     try {
-      await respondMutation.mutateAsync({ matchingId, action });
+      await respondMutation.mutateAsync({ matchingId, action: "수락" });
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleQuickReject = async (matchingId: number) => {
+    setProcessingId(matchingId);
+    try {
+      await respondMutation.mutateAsync({ matchingId, action: "거절" });
     } finally {
       setProcessingId(null);
     }
@@ -72,14 +86,6 @@ export function PartnerHome() {
   const thisMonth = (monthlyData as any[]).find(
     (m: any) => Number(m.year) === now.getFullYear() && Number(m.month) === now.getMonth() + 1
   );
-  const lastMonth = (monthlyData as any[]).find(
-    (m: any) => Number(m.year) === (now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear()) &&
-      Number(m.month) === (now.getMonth() === 0 ? 12 : now.getMonth())
-  );
-
-  const thisRevenue = Number(thisMonth?.totalFee ?? 0);
-  const lastRevenue = Number(lastMonth?.totalFee ?? 0);
-  const revenueDiff = thisRevenue - lastRevenue;
 
   // 알림 배너 애니메이션
   const pulseAnim = useRef(new Animated.Value(1)).current;
@@ -87,25 +93,14 @@ export function PartnerHome() {
     if (pendingCount > 0) {
       Animated.loop(
         Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1.03, duration: 700, useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1, duration: 700, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1.02, duration: 600, useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1, duration: 600, useNativeDriver: true }),
         ])
       ).start();
+    } else {
+      pulseAnim.setValue(1);
     }
   }, [pendingCount]);
-
-  // 주간 매출 데이터 (최근 7일 요일별)
-  const weeklyRevenue = Array(7).fill(0).map((_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (6 - i));
-    return {
-      day: WEEKDAYS[d.getDay()],
-      amount: Math.floor(Math.random() * 300000 + 50000), // 실제 데이터 없으면 0 표시
-    };
-  });
-  const maxWeekly = Math.max(...weeklyRevenue.map((w) => w.amount), 1);
-
-  const [activeTab, setActiveTab] = useState<"overview" | "requests">("overview");
 
   if (profileQuery.isLoading) {
     return (
@@ -133,238 +128,219 @@ export function PartnerHome() {
         </View>
       </View>
 
-      {/* 신규 요청 알림 배너 */}
+      {/* 신규 요청 긴급 알림 배너 */}
       {pendingCount > 0 && (
-        <Animated.View style={[styles.alertBanner, { transform: [{ scale: pulseAnim }] }]}>
+        <Animated.View style={[styles.urgentBanner, { transform: [{ scale: pulseAnim }] }]}>
           <Pressable
-            style={styles.alertBannerInner}
+            style={styles.urgentBannerInner}
             onPress={() => router.push("/(tabs)/partner-dashboard" as never)}
           >
-            <View style={styles.alertBannerLeft}>
-              <View style={styles.alertDot} />
-              <Text style={styles.alertBannerText}>🔔 새 요청 {pendingCount}건이 대기 중입니다</Text>
+            <View style={styles.urgentLeft}>
+              <View style={styles.urgentDot} />
+              <Text style={styles.urgentText}>🔔 새 고객 요청 {pendingCount}건 대기 중!</Text>
             </View>
-            <Text style={styles.alertBannerArrow}>지금 확인 →</Text>
+            <Text style={styles.urgentAction}>지금 수락 →</Text>
           </Pressable>
         </Animated.View>
       )}
 
-      {/* 탭 전환 */}
-      <View style={styles.tabBar}>
-        {(["overview", "requests"] as const).map((tab) => (
-          <Pressable
-            key={tab}
-            style={[styles.tabBtn, activeTab === tab && styles.tabBtnActive]}
-            onPress={() => setActiveTab(tab)}
-          >
-            <Text style={[styles.tabBtnText, activeTab === tab && styles.tabBtnTextActive]}>
-              {tab === "overview" ? "📊 현황 요약" : `📋 요청 목록 ${pendingCount > 0 ? `(${pendingCount})` : ""}`}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {activeTab === "overview" ? (
+        {/* 오늘의 통계 */}
+        <View style={styles.todayStatsCard}>
+          <Text style={styles.todayStatsTitle}>📊 오늘의 통계</Text>
+          <View style={styles.todayStatsRow}>
+            {[
+              { label: "신규 요청", value: pendingCount, icon: "🔔", color: "#ED8936" },
+              { label: "진행 중", value: activeCount, icon: "🔧", color: "#3182CE" },
+              { label: "이달 완료", value: Number(thisMonth?.count ?? 0), icon: "✅", color: "#38A169" },
+              { label: "이달 수익", value: formatMoney(thisMonth?.totalFee ?? 0), icon: "💰", color: "#805AD5" },
+            ].map((s) => (
+              <View key={s.label} style={styles.todayStatItem}>
+                <Text style={styles.todayStatIcon}>{s.icon}</Text>
+                <Text style={[styles.todayStatValue, { color: s.color }]}>{s.value}</Text>
+                <Text style={styles.todayStatLabel}>{s.label}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+
+        {/* 신규 요청 목록 (최대 3개) */}
+        {pendingRequests.length > 0 && (
           <>
-            {/* KPI 카드 4개 */}
-            <View style={styles.kpiGrid}>
-              {[
-                { label: "대기 요청", value: pendingCount, icon: "⏳", color: "#ED8936", bg: "#FFFAF0" },
-                { label: "진행 중", value: activeCount, icon: "🔧", color: "#3182CE", bg: "#EBF8FF" },
-                { label: "이달 완료", value: Number(thisMonth?.count ?? 0), icon: "✅", color: "#38A169", bg: "#F0FFF4" },
-                { label: "누적 처리", value: profile?.totalCases ?? 0, icon: "📦", color: "#805AD5", bg: "#FAF5FF" },
-              ].map((k) => (
-                <View key={k.label} style={[styles.kpiCard, { backgroundColor: k.bg, borderColor: k.color + "30" }]}>
-                  <Text style={styles.kpiIcon}>{k.icon}</Text>
-                  <Text style={[styles.kpiValue, { color: k.color }]}>{k.value}</Text>
-                  <Text style={styles.kpiLabel}>{k.label}</Text>
-                </View>
-              ))}
-            </View>
-
-            {/* 이달 매출 카드 */}
-            <View style={styles.revenueCard}>
-              <View style={styles.revenueTop}>
-                <View>
-                  <Text style={styles.revenueMonth}>{now.getMonth() + 1}월 매출</Text>
-                  <Text style={styles.revenueAmount}>{formatMoney(thisRevenue)}</Text>
-                </View>
-                <View style={styles.revenueDiffBox}>
-                  <Text style={[styles.revenueDiff, { color: revenueDiff >= 0 ? "#38A169" : "#E53E3E" }]}>
-                    {revenueDiff >= 0 ? "▲" : "▼"} {formatMoney(Math.abs(revenueDiff))}
-                  </Text>
-                  <Text style={styles.revenueDiffLabel}>전월 대비</Text>
-                </View>
-              </View>
-
-              {/* 주간 바 차트 */}
-              <View style={styles.barChart}>
-                {weeklyRevenue.map((w, i) => {
-                  const isToday = i === 6;
-                  const height = Math.max((w.amount / maxWeekly) * 60, 4);
-                  return (
-                    <View key={i} style={styles.barCol}>
-                      <View style={[styles.bar, { height, backgroundColor: isToday ? "#1A2B4C" : "#CBD5E0" }]} />
-                      <Text style={[styles.barDay, isToday && { color: "#1A2B4C", fontWeight: "700" }]}>{w.day}</Text>
-                    </View>
-                  );
-                })}
-              </View>
-
-              <Pressable
-                style={styles.settlementBtn}
-                onPress={() => router.push("/settlement" as never)}
-              >
-                <Text style={styles.settlementBtnText}>💰 정산 관리 →</Text>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>🔔 새 고객 요청</Text>
+              <Pressable onPress={() => router.push("/(tabs)/partner-dashboard" as never)}>
+                <Text style={styles.sectionLink}>전체 보기 →</Text>
               </Pressable>
             </View>
+            {pendingRequests.slice(0, 3).map((item: any, idx: number) => {
+              const matching = item.matching ?? item;
+              const accident = item.accident ?? {};
+              const user = item.user ?? {};
+              const matchingId = matching.id;
+              const isProcessing = processingId === matchingId;
+              const typeIcon = ACCIDENT_TYPE_ICON[accident.accidentType] ?? "🚗";
 
-            {/* 빠른 액션 */}
-            <Text style={styles.sectionTitle}>⚡ 빠른 액션</Text>
-            <View style={styles.actionGrid}>
-              {[
-                { label: "요청 관리", icon: "📋", route: "/(tabs)/partner-dashboard", color: "#1A2B4C", desc: "수락·거절·완료" },
-                { label: "정산 내역", icon: "💰", route: "/settlement", color: "#38A169", desc: "월별 매출 확인" },
-                { label: "업체 프로필", icon: "🏢", route: "/partner-register", color: "#3182CE", desc: "정보 수정" },
-                { label: "후기 관리", icon: "⭐", route: "/(tabs)/partner-dashboard", color: "#DD6B20", desc: "고객 후기" },
-              ].map((a) => (
-                <Pressable
-                  key={a.label}
-                  style={({ pressed }) => [styles.actionCard, pressed && { opacity: 0.8 }]}
-                  onPress={() => router.push(a.route as never)}
-                >
-                  <View style={[styles.actionIconBox, { backgroundColor: a.color + "15" }]}>
-                    <Text style={styles.actionIcon}>{a.icon}</Text>
+              return (
+                <Animated.View key={matchingId ?? idx} style={[styles.requestCard, { transform: [{ scale: pulseAnim }] }]}>
+                  <View style={styles.requestCardTop}>
+                    <View style={styles.newBadge}>
+                      <View style={styles.newBadgeDot} />
+                      <Text style={styles.newBadgeText}>NEW</Text>
+                    </View>
+                    <Text style={styles.requestTime}>{getTimeAgo(matching.requestedAt ?? matching.createdAt)}</Text>
                   </View>
-                  <Text style={[styles.actionLabel, { color: a.color }]}>{a.label}</Text>
-                  <Text style={styles.actionDesc}>{a.desc}</Text>
-                </Pressable>
-              ))}
-            </View>
 
-            {/* 업체 상태 요약 */}
-            <View style={styles.statusCard}>
-              <Text style={styles.statusCardTitle}>🏢 업체 현황</Text>
-              <View style={styles.statusCardRow}>
-                <View style={styles.statusItem}>
-                  <Text style={styles.statusItemLabel}>가입일</Text>
-                  <Text style={styles.statusItemValue}>
-                    {profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString("ko-KR") : "-"}
-                  </Text>
-                </View>
-                <View style={styles.statusDivider} />
-                <View style={styles.statusItem}>
-                  <Text style={styles.statusItemLabel}>평균 응답</Text>
-                  <Text style={styles.statusItemValue}>약 15분</Text>
-                </View>
-                <View style={styles.statusDivider} />
-                <View style={styles.statusItem}>
-                  <Text style={styles.statusItemLabel}>완료율</Text>
-                  <Text style={[styles.statusItemValue, { color: "#38A169" }]}>
-                    {stats && (stats.수락 ?? 0) > 0
-                      ? Math.round(((stats.완료 ?? 0) / (stats.수락 ?? 1)) * 100) + "%"
-                      : "-"}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </>
-        ) : (
-          <>
-            {/* 요청 목록 탭 */}
-            {pendingRequests.length === 0 && activeRequests.length === 0 ? (
-              <View style={styles.emptyBox}>
-                <Text style={styles.emptyIcon}>📭</Text>
-                <Text style={styles.emptyText}>현재 대기 중인 요청이 없습니다</Text>
-                <Text style={styles.emptySubText}>새 요청이 들어오면 알림을 보내드립니다</Text>
-              </View>
-            ) : (
-              <>
-                {pendingRequests.length > 0 && (
-                  <>
-                    <Text style={styles.reqSectionTitle}>⏳ 수락 대기 ({pendingRequests.length}건)</Text>
-                    {pendingRequests.map((item: any, idx: number) => {
-                      const matching = item.matching ?? item;
-                      const accident = item.accident ?? {};
-                      const user = item.user ?? {};
-                      return (
-                        <Pressable
-                          key={matching.id ?? idx}
-                          style={({ pressed }) => [styles.reqCard, styles.reqCardPending, pressed && { opacity: 0.85 }]}
-                          onPress={() => router.push("/(tabs)/partner-dashboard" as never)}
-                        >
-                          <View style={styles.reqCardTop}>
-                            <View style={styles.reqTypeBadge}>
-                              <Text style={styles.reqTypeBadgeText}>{accident.accidentType ?? "사고"}</Text>
-                            </View>
-                            <Text style={styles.reqTime}>{getTimeAgo(matching.createdAt)}</Text>
-                          </View>
-                          <Text style={styles.reqLocation}>📍 {accident.location ?? "위치 정보 없음"}</Text>
-                          <Text style={styles.reqUser}>👤 {user.name ?? "사용자"}</Text>
-                          <View style={styles.reqCardActions}>
-                            <Pressable
-                              style={({ pressed }) => [styles.inlineAcceptBtn, pressed && { opacity: 0.8 }]}
-                              onPress={() => handleRespond(matching.id, "수락")}
-                              disabled={processingId === matching.id}
-                            >
-                              {processingId === matching.id ? (
-                                <ActivityIndicator size="small" color="#fff" />
-                              ) : (
-                                <Text style={styles.inlineAcceptBtnText}>✓ 수락</Text>
-                              )}
-                            </Pressable>
-                            <Pressable
-                              style={({ pressed }) => [styles.inlineRejectBtn, pressed && { opacity: 0.8 }]}
-                              onPress={() => handleRespond(matching.id, "거절")}
-                              disabled={processingId === matching.id}
-                            >
-                              <Text style={styles.inlineRejectBtnText}>✕ 거절</Text>
-                            </Pressable>
-                            <View style={styles.newBadge}>
-                              <Text style={styles.newBadgeText}>NEW</Text>
-                            </View>
-                          </View>
-                        </Pressable>
-                      );
-                    })}
-                  </>
-                )}
-                {activeRequests.length > 0 && (
-                  <>
-                    <Text style={styles.reqSectionTitle}>🔧 진행 중 ({activeRequests.length}건)</Text>
-                    {activeRequests.map((item: any, idx: number) => {
-                      const matching = item.matching ?? item;
-                      const accident = item.accident ?? {};
-                      const user = item.user ?? {};
-                      return (
-                        <Pressable
-                          key={matching.id ?? idx}
-                          style={({ pressed }) => [styles.reqCard, styles.reqCardActive, pressed && { opacity: 0.85 }]}
-                          onPress={() => router.push("/(tabs)/partner-dashboard" as never)}
-                        >
-                          <View style={styles.reqCardTop}>
-                            <View style={[styles.reqTypeBadge, { backgroundColor: "#EBF8FF" }]}>
-                              <Text style={[styles.reqTypeBadgeText, { color: "#3182CE" }]}>{accident.accidentType ?? "사고"}</Text>
-                            </View>
-                            <Text style={styles.reqTime}>{getTimeAgo(matching.createdAt)}</Text>
-                          </View>
-                          <Text style={styles.reqLocation}>📍 {accident.location ?? "위치 정보 없음"}</Text>
-                          <Text style={styles.reqUser}>👤 {user.name ?? "사용자"}</Text>
-                        </Pressable>
-                      );
-                    })}
-                  </>
-                )}
-              </>
+                  <View style={styles.requestTypeRow}>
+                    <Text style={styles.requestTypeIcon}>{typeIcon}</Text>
+                    <View style={styles.requestTypeInfo}>
+                      <Text style={styles.requestTypeName}>{accident.accidentType ?? "사고 유형"}</Text>
+                      <Text style={styles.requestLocation} numberOfLines={1}>
+                        📍 {accident.location ?? "위치 정보 없음"}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.requestCustomerRow}>
+                    <Text style={styles.requestCustomer}>👤 {user.name ?? "고객"}</Text>
+                    {accident.injuryLevel && accident.injuryLevel !== "없음" && (
+                      <View style={styles.injuryBadge}>
+                        <Text style={styles.injuryText}>부상: {accident.injuryLevel}</Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <View style={styles.requestActions}>
+                    <Pressable
+                      style={({ pressed }) => [styles.rejectBtn, pressed && { opacity: 0.7 }, isProcessing && { opacity: 0.5 }]}
+                      onPress={() => handleQuickReject(matchingId)}
+                      disabled={isProcessing}
+                    >
+                      <Text style={styles.rejectBtnText}>✕ 거절</Text>
+                    </Pressable>
+                    <Pressable
+                      style={({ pressed }) => [styles.acceptBtn, pressed && { opacity: 0.9 }, isProcessing && { opacity: 0.7 }]}
+                      onPress={() => handleQuickAccept(matchingId)}
+                      disabled={isProcessing}
+                    >
+                      {isProcessing ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                      ) : (
+                        <Text style={styles.acceptBtnText}>✓ 수락하기</Text>
+                      )}
+                    </Pressable>
+                  </View>
+                </Animated.View>
+              );
+            })}
+            {pendingRequests.length > 3 && (
+              <Pressable
+                style={styles.viewMoreBtn}
+                onPress={() => router.push("/(tabs)/partner-dashboard" as never)}
+              >
+                <Text style={styles.viewMoreBtnText}>
+                  +{pendingRequests.length - 3}건 더 보기 →
+                </Text>
+              </Pressable>
             )}
-            <Pressable
-              style={styles.viewAllBtn}
-              onPress={() => router.push("/(tabs)/partner-dashboard" as never)}
-            >
-              <Text style={styles.viewAllBtnText}>전체 요청 관리 →</Text>
-            </Pressable>
           </>
+        )}
+
+        {/* 진행 중 요청 (최대 3개) */}
+        {activeRequests.length > 0 && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>🔧 진행 중</Text>
+              <Pressable onPress={() => router.push("/(tabs)/partner-dashboard" as never)}>
+                <Text style={styles.sectionLink}>전체 보기 →</Text>
+              </Pressable>
+            </View>
+            {activeRequests.slice(0, 3).map((item: any, idx: number) => {
+              const matching = item.matching ?? item;
+              const accident = item.accident ?? {};
+              const user = item.user ?? {};
+
+              return (
+                <Pressable
+                  key={matching.id ?? idx}
+                  style={({ pressed }) => [styles.activeCard, pressed && { opacity: 0.85 }]}
+                  onPress={() => router.push("/(tabs)/partner-dashboard" as never)}
+                >
+                  <View style={styles.activeCardTop}>
+                    <View style={styles.activeCardLeft}>
+                      <Text style={styles.activeAccidentType}>{accident.accidentType ?? "사고"}</Text>
+                      <Text style={styles.activeCustomer}>👤 {user.name ?? "고객"}</Text>
+                      <Text style={styles.activeLocation} numberOfLines={1}>📍 {accident.location ?? "위치 미상"}</Text>
+                    </View>
+                    <View style={styles.activeCardRight}>
+                      <View style={styles.activeStatusBadge}>
+                        <Text style={styles.activeStatusText}>진행중</Text>
+                      </View>
+                      <Text style={styles.activeTime}>{getTimeAgo(matching.requestedAt ?? matching.createdAt)}</Text>
+                    </View>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </>
+        )}
+
+        {/* 빠른 액션 */}
+        <Text style={styles.sectionTitle}>⚡ 빠른 액션</Text>
+        <View style={styles.actionGrid}>
+          {[
+            { label: "요청 관리", icon: "📋", route: "/(tabs)/partner-dashboard", color: "#1A2B4C", desc: `${pendingCount}건 대기` },
+            { label: "정산 내역", icon: "💰", route: "/settlement", color: "#38A169", desc: "월별 매출" },
+            { label: "업체 프로필", icon: "🏢", route: "/partner-register", color: "#3182CE", desc: "정보 수정" },
+            { label: "후기 관리", icon: "⭐", route: "/(tabs)/partner-dashboard", color: "#DD6B20", desc: `평점 ${Number(profile?.rating ?? 0).toFixed(1)}` },
+          ].map((a) => (
+            <Pressable
+              key={a.label}
+              style={({ pressed }) => [styles.actionCard, pressed && { opacity: 0.8 }]}
+              onPress={() => router.push(a.route as never)}
+            >
+              <View style={[styles.actionIconBox, { backgroundColor: a.color + "15" }]}>
+                <Text style={styles.actionIcon}>{a.icon}</Text>
+              </View>
+              <Text style={[styles.actionLabel, { color: a.color }]}>{a.label}</Text>
+              <Text style={styles.actionDesc}>{a.desc}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        {/* 업체 성과 */}
+        <View style={styles.performanceCard}>
+          <Text style={styles.performanceTitle}>🏆 나의 성과</Text>
+          <View style={styles.performanceRow}>
+            {[
+              { label: "누적 처리", value: profile?.totalCases ?? 0, color: "#3182CE" },
+              { label: "완료율", value: (stats && (stats.수락 ?? 0) > 0 ? Math.round(((stats.완료 ?? 0) / (stats.수락 ?? 1)) * 100) + "%" : "-"), color: "#38A169" },
+              { label: "평균 평점", value: Number(profile?.rating ?? 0).toFixed(1), color: "#ED8936" },
+            ].map((p, i) => (
+              <React.Fragment key={p.label}>
+                {i > 0 && <View style={styles.performanceDivider} />}
+                <View style={styles.performanceItem}>
+                  <Text style={[styles.performanceValue, { color: p.color }]}>{p.value}</Text>
+                  <Text style={styles.performanceLabel}>{p.label}</Text>
+                </View>
+              </React.Fragment>
+            ))}
+          </View>
+        </View>
+
+        {/* 빈 상태 (요청 없을 때) */}
+        {pendingCount === 0 && activeCount === 0 && (
+          <View style={styles.emptyBox}>
+            <Text style={styles.emptyIcon}>📭</Text>
+            <Text style={styles.emptyTitle}>새 요청이 없습니다</Text>
+            <Text style={styles.emptyDesc}>새 고객 요청이 들어오면 알림을 보내드립니다</Text>
+            <View style={styles.emptyTips}>
+              <Text style={styles.emptyTipsTitle}>💡 고객 유입 팁</Text>
+              <Text style={styles.emptyTipsText}>• 프로필 정보를 완성하면 매칭 우선순위가 높아집니다</Text>
+              <Text style={styles.emptyTipsText}>• 빠른 응답률이 높을수록 더 많은 요청을 받습니다</Text>
+              <Text style={styles.emptyTipsText}>• 고객 후기 관리로 평점을 높이세요</Text>
+            </View>
+          </View>
         )}
       </ScrollView>
     </View>
@@ -392,87 +368,134 @@ const styles = StyleSheet.create({
   headerRight: { alignItems: "flex-end" },
   ratingBig: { fontSize: 16, fontWeight: "700", color: "#F6E05E" },
   ratingCount: { fontSize: 11, color: "rgba(255,255,255,0.6)", marginTop: 2 },
-  // 알림 배너
-  alertBanner: {
+  // 긴급 배너
+  urgentBanner: {
     backgroundColor: "#ED8936",
     marginHorizontal: 16,
     marginTop: 12,
     borderRadius: 12,
     overflow: "hidden",
   },
-  alertBannerInner: {
+  urgentBannerInner: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
   },
-  alertBannerLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
-  alertDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#FFFFFF" },
-  alertBannerText: { fontSize: 14, fontWeight: "700", color: "#FFFFFF" },
-  alertBannerArrow: { fontSize: 13, fontWeight: "600", color: "rgba(255,255,255,0.9)" },
-  // 탭
-  tabBar: {
-    flexDirection: "row",
-    marginHorizontal: 16,
-    marginTop: 12,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 4,
-    gap: 4,
-  },
-  tabBtn: { flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: "center" },
-  tabBtnActive: { backgroundColor: "#1A2B4C" },
-  tabBtnText: { fontSize: 13, fontWeight: "600", color: "#718096" },
-  tabBtnTextActive: { color: "#FFFFFF" },
+  urgentLeft: { flexDirection: "row", alignItems: "center", gap: 8 },
+  urgentDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#FFFFFF" },
+  urgentText: { fontSize: 14, fontWeight: "700", color: "#FFFFFF" },
+  urgentAction: { fontSize: 13, fontWeight: "600", color: "rgba(255,255,255,0.9)" },
   // 스크롤
   scroll: { flex: 1 },
   scrollContent: { padding: 16, gap: 14, paddingBottom: 32 },
-  // KPI 그리드
-  kpiGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
-  kpiCard: {
-    width: "47%",
-    borderRadius: 14,
-    padding: 14,
-    alignItems: "center",
-    gap: 4,
-    borderWidth: 1,
-  },
-  kpiIcon: { fontSize: 24 },
-  kpiValue: { fontSize: 28, fontWeight: "800" },
-  kpiLabel: { fontSize: 12, color: "#718096", fontWeight: "500" },
-  // 매출 카드
-  revenueCard: {
+  // 오늘의 통계
+  todayStatsCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
-    padding: 18,
-    gap: 14,
+    padding: 16,
+    gap: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
   },
-  revenueTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
-  revenueMonth: { fontSize: 13, color: "#718096", fontWeight: "500" },
-  revenueAmount: { fontSize: 28, fontWeight: "800", color: "#1A2B4C", marginTop: 4 },
-  revenueDiffBox: { alignItems: "flex-end" },
-  revenueDiff: { fontSize: 14, fontWeight: "700" },
-  revenueDiffLabel: { fontSize: 11, color: "#A0AEC0", marginTop: 2 },
-  // 바 차트
-  barChart: { flexDirection: "row", alignItems: "flex-end", justifyContent: "space-between", height: 80 },
-  barCol: { flex: 1, alignItems: "center", gap: 4 },
-  bar: { width: "60%", borderRadius: 4, minHeight: 4 },
-  barDay: { fontSize: 11, color: "#A0AEC0" },
-  settlementBtn: {
-    backgroundColor: "#1A2B4C",
+  todayStatsTitle: { fontSize: 15, fontWeight: "700", color: "#1A2B4C" },
+  todayStatsRow: { flexDirection: "row", gap: 8 },
+  todayStatItem: { flex: 1, alignItems: "center", gap: 4 },
+  todayStatIcon: { fontSize: 20 },
+  todayStatValue: { fontSize: 18, fontWeight: "800" },
+  todayStatLabel: { fontSize: 10, color: "#A0AEC0", textAlign: "center" },
+  // 섹션 헤더
+  sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  sectionTitle: { fontSize: 15, fontWeight: "700", color: "#1A2B4C" },
+  sectionLink: { fontSize: 13, fontWeight: "600", color: "#3182CE" },
+  // 요청 카드
+  requestCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 16,
+    gap: 12,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
+    borderWidth: 1.5,
+    borderColor: "#ED8936",
+  },
+  requestCardTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
+  newBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "#FFF3E0",
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  newBadgeDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: "#ED8936" },
+  newBadgeText: { fontSize: 11, fontWeight: "800", color: "#ED8936" },
+  requestTime: { fontSize: 11, color: "#A0AEC0" },
+  requestTypeRow: { flexDirection: "row", alignItems: "center", gap: 10 },
+  requestTypeIcon: { fontSize: 32 },
+  requestTypeInfo: { flex: 1, gap: 3 },
+  requestTypeName: { fontSize: 16, fontWeight: "800", color: "#1A2B4C" },
+  requestLocation: { fontSize: 13, color: "#4A5568" },
+  requestCustomerRow: { flexDirection: "row", alignItems: "center", gap: 8 },
+  requestCustomer: { fontSize: 13, color: "#718096" },
+  injuryBadge: { backgroundColor: "#FFF5F5", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+  injuryText: { fontSize: 11, fontWeight: "600", color: "#E53E3E" },
+  requestActions: { flexDirection: "row", gap: 8 },
+  rejectBtn: {
+    flex: 1,
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+    backgroundColor: "#F7FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  rejectBtnText: { fontSize: 14, fontWeight: "700", color: "#718096" },
+  acceptBtn: {
+    flex: 2,
+    borderRadius: 10,
+    paddingVertical: 12,
+    alignItems: "center",
+    backgroundColor: "#38A169",
+  },
+  acceptBtnText: { fontSize: 15, fontWeight: "800", color: "#FFFFFF" },
+  viewMoreBtn: {
+    backgroundColor: "#EBF8FF",
     borderRadius: 10,
     paddingVertical: 10,
     alignItems: "center",
   },
-  settlementBtnText: { fontSize: 14, fontWeight: "700", color: "#FFFFFF" },
-  // 섹션 타이틀
-  sectionTitle: { fontSize: 15, fontWeight: "700", color: "#1A2B4C" },
+  viewMoreBtnText: { fontSize: 13, fontWeight: "700", color: "#3182CE" },
+  // 진행중 카드
+  activeCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    padding: 14,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
+    borderLeftWidth: 4,
+    borderLeftColor: "#3182CE",
+  },
+  activeCardTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start" },
+  activeCardLeft: { flex: 1, gap: 4 },
+  activeAccidentType: { fontSize: 15, fontWeight: "700", color: "#1A2B4C" },
+  activeCustomer: { fontSize: 12, color: "#718096" },
+  activeLocation: { fontSize: 12, color: "#A0AEC0" },
+  activeCardRight: { alignItems: "flex-end", gap: 6 },
+  activeStatusBadge: { backgroundColor: "#EBF8FF", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
+  activeStatusText: { fontSize: 11, fontWeight: "700", color: "#3182CE" },
+  activeTime: { fontSize: 10, color: "#A0AEC0" },
   // 액션 그리드
   actionGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   actionCard: {
@@ -491,8 +514,8 @@ const styles = StyleSheet.create({
   actionIcon: { fontSize: 20 },
   actionLabel: { fontSize: 14, fontWeight: "700" },
   actionDesc: { fontSize: 11, color: "#A0AEC0" },
-  // 업체 상태 카드
-  statusCard: {
+  // 성과 카드
+  performanceCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
     padding: 16,
@@ -503,68 +526,25 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 1,
   },
-  statusCardTitle: { fontSize: 14, fontWeight: "700", color: "#1A2B4C" },
-  statusCardRow: { flexDirection: "row", alignItems: "center" },
-  statusItem: { flex: 1, alignItems: "center", gap: 4 },
-  statusItemLabel: { fontSize: 11, color: "#A0AEC0" },
-  statusItemValue: { fontSize: 15, fontWeight: "700", color: "#1A2B4C" },
-  statusDivider: { width: 1, height: 32, backgroundColor: "#E2E8F0" },
-  // 요청 목록 탭
-  reqSectionTitle: { fontSize: 14, fontWeight: "700", color: "#4A5568", marginBottom: -4 },
-  reqCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 14,
-    padding: 14,
-    gap: 6,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  reqCardPending: { borderLeftWidth: 4, borderLeftColor: "#ED8936" },
-  reqCardActive: { borderLeftWidth: 4, borderLeftColor: "#3182CE" },
-  reqCardTop: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  reqTypeBadge: { backgroundColor: "#FFFAF0", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-  reqTypeBadgeText: { fontSize: 12, fontWeight: "600", color: "#DD6B20" },
-  reqTime: { fontSize: 11, color: "#A0AEC0" },
-  reqLocation: { fontSize: 13, color: "#4A5568" },
-  reqUser: { fontSize: 12, color: "#718096" },
-  reqCardActions: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginTop: 4 },
-  reqAcceptHint: { backgroundColor: "#F7FAFC", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4 },
-  reqAcceptHintText: { fontSize: 11, color: "#718096" },
-  newBadge: { backgroundColor: "#E53E3E", borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3 },
-  newBadgeText: { fontSize: 10, fontWeight: "800", color: "#FFFFFF" },
-  emptyBox: { alignItems: "center", paddingVertical: 48, gap: 8 },
+  performanceTitle: { fontSize: 14, fontWeight: "700", color: "#1A2B4C" },
+  performanceRow: { flexDirection: "row", alignItems: "center" },
+  performanceItem: { flex: 1, alignItems: "center", gap: 4 },
+  performanceValue: { fontSize: 20, fontWeight: "800" },
+  performanceLabel: { fontSize: 11, color: "#A0AEC0" },
+  performanceDivider: { width: 1, height: 28, backgroundColor: "#E2E8F0" },
+  // 빈 상태
+  emptyBox: { alignItems: "center", paddingVertical: 32, gap: 10 },
   emptyIcon: { fontSize: 48 },
-  emptyText: { fontSize: 15, fontWeight: "600", color: "#4A5568" },
-  emptySubText: { fontSize: 13, color: "#A0AEC0" },
-  viewAllBtn: {
-    backgroundColor: "#1A2B4C",
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: "center",
+  emptyTitle: { fontSize: 16, fontWeight: "700", color: "#4A5568" },
+  emptyDesc: { fontSize: 13, color: "#A0AEC0" },
+  emptyTips: {
+    backgroundColor: "#F7FAFC",
+    borderRadius: 14,
+    padding: 16,
+    gap: 8,
+    width: "100%",
     marginTop: 8,
   },
-  viewAllBtnText: { fontSize: 15, fontWeight: "700", color: "#FFFFFF" },
-  inlineAcceptBtn: {
-    backgroundColor: "#38A169",
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    minWidth: 60,
-    alignItems: "center",
-  },
-  inlineAcceptBtnText: { fontSize: 13, fontWeight: "700", color: "#FFFFFF" },
-  inlineRejectBtn: {
-    backgroundColor: "#FFF5F5",
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    minWidth: 60,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#FC8181",
-  },
-  inlineRejectBtnText: { fontSize: 13, fontWeight: "700", color: "#E53E3E" },
+  emptyTipsTitle: { fontSize: 13, fontWeight: "700", color: "#1A2B4C", marginBottom: 4 },
+  emptyTipsText: { fontSize: 12, color: "#718096", lineHeight: 18 },
 });
