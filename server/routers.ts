@@ -214,6 +214,14 @@ const partnerApplyRouter = router({
         phone: z.string().min(1),
         address: z.string().min(1),
         description: z.string().optional(),
+        // 운영시간: {mon:{open,close,closed}, tue:..., ...} JSON 직렬화
+        businessHours: z.string().optional(),
+        // 대표 사진 URL 목록 JSON 직렬화
+        photoUrls: z.string().optional(),
+        // 서비스 금액표 JSON 직렬화
+        pricingInfo: z.string().optional(),
+        website: z.string().optional(),
+        parkingAvailable: z.boolean().optional(),
       }),
     )
     .mutation(async ({ ctx, input }) => {
@@ -229,6 +237,11 @@ const partnerApplyRouter = router({
         phone: input.phone,
         address: input.address,
         description: input.description,
+        businessHours: input.businessHours,
+        photoUrls: input.photoUrls,
+        pricingInfo: input.pricingInfo,
+        website: input.website,
+        parkingAvailable: input.parkingAvailable ?? false,
         status: "pending", // 관리자 승인 대기
       });
       return { id, status: "pending" };

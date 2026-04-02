@@ -39,6 +39,15 @@ export const partners = mysqlTable("partners", {
   phone: varchar("phone", { length: 20 }).notNull(),
   address: varchar("address", { length: 500 }).notNull(),
   description: text("description"),
+  // 운영시간: JSON 문자열 {mon:{open,close,closed}, tue:..., ...}
+  businessHours: text("businessHours"),
+  // 대표 사진 URL 목록: JSON 문자열 [url1, url2, ...]
+  photoUrls: text("photoUrls"),
+  // 서비스 금액표: JSON 문자열 [{name, price, unit, desc}, ...]
+  pricingInfo: text("pricingInfo"),
+  // 추가 정보
+  website: varchar("website", { length: 500 }),
+  parkingAvailable: boolean("parkingAvailable").default(false),
   rating: decimal("rating", { precision: 3, scale: 2 }).default("0.00").notNull(),
   reviewCount: int("reviewCount").default(0).notNull(),
   totalCases: int("totalCases").default(0).notNull(),

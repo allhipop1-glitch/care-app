@@ -15,6 +15,13 @@
       "when": 1775094669876,
       "tag": "0001_foamy_venus",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1775107669596,
+      "tag": "0002_low_post",
+      "breakpoints": true
     }
   ]
 }
