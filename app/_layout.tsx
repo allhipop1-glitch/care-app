@@ -9,6 +9,7 @@ import { Platform } from "react-native";
 import "@/lib/_core/nativewind-pressable";
 import { ThemeProvider } from "@/lib/theme-provider";
 import { setupNotificationHandler, initTipNotifications } from "@/lib/tip-notification-store";
+import { setupPartnerNotificationChannel } from "@/lib/partner-notification";
 import {
   SafeAreaFrameContext,
   SafeAreaInsetsContext,
@@ -44,6 +45,7 @@ export default function RootLayout() {
     if (Platform.OS !== "web") {
       setupNotificationHandler();
       initTipNotifications();
+      setupPartnerNotificationChannel();
     }
   }, []);
 
@@ -106,6 +108,8 @@ export default function RootLayout() {
             <Stack.Screen name="register" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="drive-mode-settings" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="tip-notification-settings" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="partner-register" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="settlement" options={{ animation: "slide_from_right" }} />
           </Stack>
           <StatusBar style="auto" />
         </QueryClientProvider>

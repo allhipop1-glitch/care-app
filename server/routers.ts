@@ -15,12 +15,15 @@ import {
   getAdminStats,
   getAllAccidents,
   getAllPartners,
+  getCompletedMatchingsByPartner,
   getMatchingsByAccident,
   getMatchingsByPartner,
+  getMonthlySettlementByPartner,
   getPartnerByUserId,
   getPartnerStats,
   getReviewsByPartner,
   updateAccidentStatus,
+  updateMatchingFee,
   updateMatchingStatus,
   updatePartner,
   updatePartnerStatus,
@@ -199,6 +202,75 @@ const partnerRouter = router({
     }),
 });
 
+// ─── 파트너 셀프 등록 신청 ──────────────────────────────────────────────────────
+// (일반 사용자가 파트너 신청 → status: 'pending' → 관리자 승인 후 active)
+
+const partnerApplyRouter = router({
+  applyPartner: protectedProcedure
+    .input(
+      z.object({
+        name: z.string().min(1),
+        category: z.enum(["공업사", "렉카", "병원", "변호사", "손해사정사"]),
+        phone: z.string().min(1),
+        address: z.string().min(1),
+        description: z.string().optional(),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      // 이미 파트너로 등록된 경우 중복 방지
+      const existing = await getPartnerByUserId(ctx.user.id);
+      if (existing) {
+        throw new Error("이미 파트너로 등록되어 있습니다.");
+      }
+      const id = await createPartner({
+        userId: ctx.user.id,
+        name: input.name,
+        category: input.category,
+        phone: input.phone,
+        address: input.address,
+        description: input.description,
+        status: "pending", // 관리자 승인 대기
+      });
+      return { id, status: "pending" };
+    }),
+
+  // 내 신청 상태 조회
+  myApplicationStatus: protectedProcedure.query(async ({ ctx }) => {
+    const partner = await getPartnerByUserId(ctx.user.id);
+    if (!partner) return null;
+    return { status: partner.status, name: partner.name, category: partner.category };
+  }),
+});
+
+// ─── 정산 라우터 ────────────────────────────────────────────────────────────
+
+const settlementRouter = router({
+  // 완료된 매칭 목록 (정산 대상)
+  completedList: protectedProcedure.query(async ({ ctx }) => {
+    const partner = await getPartnerByUserId(ctx.user.id);
+    if (!partner) return [];
+    return getCompletedMatchingsByPartner(partner.id);
+  }),
+
+  // 월별 정산 집계
+  monthly: protectedProcedure.query(async ({ ctx }) => {
+    const partner = await getPartnerByUserId(ctx.user.id);
+    if (!partner) return [];
+    return getMonthlySettlementByPartner(partner.id);
+  }),
+
+  // 첲리 금액 업데이트
+  updateFee: protectedProcedure
+    .input(z.object({ matchingId: z.number(), fee: z.string() }))
+    .mutation(async ({ ctx, input }) => {
+      // 내 파트너의 매칭인지 확인
+      const partner = await getPartnerByUserId(ctx.user.id);
+      if (!partner) throw new Error("파트너 정보를 찾을 수 없습니다.");
+      await updateMatchingFee(input.matchingId, input.fee);
+      return { success: true };
+    }),
+});
+
 // ─── 관리자 라우터 ────────────────────────────────────────────────────────────
 
 const adminRouter = router({
@@ -303,6 +375,8 @@ export const appRouter = router({
   }),
   accident: accidentRouter,
   partner: partnerRouter,
+  partnerApply: partnerApplyRouter,
+  settlement: settlementRouter,
   admin: adminRouter,
 });
 

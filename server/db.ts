@@ -255,3 +255,45 @@ export async function getAdminStats() {
     pendingPartners: Number(pendingCount.count),
   };
 }
+
+// ─── 정산 관련 ────────────────────────────────────────────────────────────────
+
+/** 파트너의 완료된 매칭 목록 (정산 대상) */
+export async function getCompletedMatchingsByPartner(partnerId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    matching: matchings,
+    accident: accidents,
+    user: { id: users.id, name: users.name },
+  })
+    .from(matchings)
+    .leftJoin(accidents, eq(matchings.accidentId, accidents.id))
+    .leftJoin(users, eq(accidents.userId, users.id))
+    .where(and(eq(matchings.partnerId, partnerId), eq(matchings.status, "완료")))
+    .orderBy(desc(matchings.completedAt));
+}
+
+/** 파트너 월별 정산 집계 */
+export async function getMonthlySettlementByPartner(partnerId: number) {
+  const db = await getDb();
+  if (!db) return [];
+  const rows = await db.select({
+    year: sql<number>`YEAR(${matchings.completedAt})`,
+    month: sql<number>`MONTH(${matchings.completedAt})`,
+    count: sql<number>`COUNT(*)`,
+    totalFee: sql<number>`COALESCE(SUM(${matchings.fee}), 0)`,
+  })
+    .from(matchings)
+    .where(and(eq(matchings.partnerId, partnerId), eq(matchings.status, "완료")))
+    .groupBy(sql`YEAR(${matchings.completedAt}), MONTH(${matchings.completedAt})`)
+    .orderBy(desc(sql`YEAR(${matchings.completedAt})`), desc(sql`MONTH(${matchings.completedAt})`));
+  return rows;
+}
+
+/** 매칭 처리 금액 업데이트 */
+export async function updateMatchingFee(id: number, fee: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(matchings).set({ fee }).where(eq(matchings.id, id));
+}

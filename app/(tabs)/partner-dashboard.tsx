@@ -1,5 +1,7 @@
+import { checkAndNotifyNewRequests, requestPartnerNotificationPermission } from "@/lib/partner-notification";
 import { trpc } from "@/lib/trpc";
-import React, { useState } from "react";
+import { useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -26,6 +28,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 export default function PartnerDashboardScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<TabType>("대기");
   const [selectedMatching, setSelectedMatching] = useState<any>(null);
   const [noteText, setNoteText] = useState("");
@@ -72,6 +75,30 @@ export default function PartnerDashboardScreen() {
 
   const stats = statsQuery.data;
   const profile = profileQuery.data;
+
+  // 파트너 알림 권한 요청
+  useEffect(() => {
+    requestPartnerNotificationPermission();
+  }, []);
+
+  // 30초 폴링으로 새 의뢰 감지 + 로컈 알림
+  useEffect(() => {
+    if (!profile) return;
+    const check = async () => {
+      const data = requestsQuery.data;
+      if (!data) return;
+      const normalized = data.map((r: any) => ({
+        matching: r.matching ?? r,
+        accident: r.accident ?? null,
+      }));
+      await checkAndNotifyNewRequests(normalized);
+    };
+    check();
+    const interval = setInterval(() => {
+      utils.partner.myRequests.invalidate();
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [profile?.id, requestsQuery.data]);
 
   const handleAccept = (item: any) => {
     setSelectedMatching({ ...item, action: "수락" });
@@ -248,6 +275,19 @@ export default function PartnerDashboardScreen() {
               </View>
             ) : null}
           </View>
+
+          {/* 정산 관리 진입 버튼 */}
+          <Pressable
+            style={styles.settlementBtn}
+            onPress={() => router.push("/settlement" as never)}
+          >
+            <Text style={styles.settlementBtnIcon}>💰</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.settlementBtnTitle}>정산 관리</Text>
+              <Text style={styles.settlementBtnDesc}>월별 매출 집계 및 건별 내역 확인</Text>
+            </View>
+            <Text style={{ fontSize: 18, color: "#A0AEC0" }}>›</Text>
+          </Pressable>
         </ScrollView>
       ) : (
         <FlatList
@@ -488,4 +528,19 @@ const styles = StyleSheet.create({
   confirmAccept: { backgroundColor: "#3182CE" },
   confirmReject: { backgroundColor: "#E53E3E" },
   confirmBtnText: { fontSize: 16, fontWeight: "700", color: "#fff" },
+  settlementBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    marginHorizontal: 16,
+    marginBottom: 24,
+    borderRadius: 12,
+    padding: 16,
+    gap: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  settlementBtnIcon: { fontSize: 28 },
+  settlementBtnTitle: { fontSize: 15, fontWeight: "700", color: "#1A202C" },
+  settlementBtnDesc: { fontSize: 12, color: "#718096", marginTop: 2 },
 });
