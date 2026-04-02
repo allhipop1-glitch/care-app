@@ -8,6 +8,7 @@ import "react-native-reanimated";
 import { Platform } from "react-native";
 import "@/lib/_core/nativewind-pressable";
 import { ThemeProvider } from "@/lib/theme-provider";
+import { setupNotificationHandler, initTipNotifications } from "@/lib/tip-notification-store";
 import {
   SafeAreaFrameContext,
   SafeAreaInsetsContext,
@@ -36,6 +37,14 @@ export default function RootLayout() {
   // Initialize Manus runtime for cookie injection from parent container
   useEffect(() => {
     initManusRuntime();
+  }, []);
+
+  // 꿀팁 알림 초기화 (핸들러 설정 + 권한 있으면 스케줄 등록)
+  useEffect(() => {
+    if (Platform.OS !== "web") {
+      setupNotificationHandler();
+      initTipNotifications();
+    }
   }, []);
 
   const handleSafeAreaUpdate = useCallback((metrics: Metrics) => {
@@ -96,6 +105,7 @@ export default function RootLayout() {
             <Stack.Screen name="insurance-save" />
             <Stack.Screen name="register" options={{ animation: "slide_from_right" }} />
             <Stack.Screen name="drive-mode-settings" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="tip-notification-settings" options={{ animation: "slide_from_right" }} />
           </Stack>
           <StatusBar style="auto" />
         </QueryClientProvider>
