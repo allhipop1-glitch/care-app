@@ -9,13 +9,15 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  Switch,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import * as Haptics from "expo-haptics";
 import { ScreenContainer } from "@/components/screen-container";
+import { DriveModeStore } from "@/lib/drive-mode-store";
 
-const STEPS = ["차량 등록", "내 정보", "보험 등록"] as const;
+const STEPS = ["차량 등록", "내 정보", "보험 등록", "자동 시작 설정"] as const;
 type StepType = (typeof STEPS)[number];
 
 const INSURANCE_LIST = [
@@ -51,6 +53,10 @@ export default function RegisterScreen() {
   const [birthYear, setBirthYear] = useState("");
   const [selectedInsurance, setSelectedInsurance] = useState<string[]>([]);
   const [policyNumber, setPolicyNumber] = useState("");
+
+  // 드라이브 모드 설정 단계
+  const [driveGpsEnabled, setDriveGpsEnabled] = useState(true);
+  const [driveBtEnabled, setDriveBtEnabled] = useState(false);
 
   // 보험 단계 하위 상태
   // "detecting" : 자동 감지 애니메이션
@@ -120,8 +126,8 @@ export default function RegisterScreen() {
       setStep("보험 등록");
       // 보험 단계 진입 시 자동 감지 시작
       simulateDetection(fullPlate);
-    } else {
-      // 완료 — AsyncStorage에 저장
+    } else if (step === "보험 등록") {
+      // 보험 등록 완료 → 드라이브 모드 설정 단계로
       const userData = {
         plate: fullPlate,
         name,
@@ -132,6 +138,14 @@ export default function RegisterScreen() {
         registeredAt: new Date().toISOString(),
       };
       await AsyncStorage.setItem("userProfile", JSON.stringify(userData));
+      setStep("자동 시작 설정");
+    } else {
+      // 드라이브 모드 설정 저장 후 완료
+      await DriveModeStore.saveSettings({
+        gpsAutoDetect: driveGpsEnabled,
+        btAutoStart: driveBtEnabled,
+        autoStartOnboarded: true,
+      });
       await AsyncStorage.setItem("onboardingDone", "true");
       router.replace("/(tabs)");
     }
@@ -139,8 +153,7 @@ export default function RegisterScreen() {
 
   const handleSkipInsurance = async () => {
     await AsyncStorage.setItem("userProfile", JSON.stringify({ plate: fullPlate, name, phone, birthYear, insurance: [], policyNumber: "" }));
-    await AsyncStorage.setItem("onboardingDone", "true");
-    router.replace("/(tabs)");
+    setStep("자동 시작 설정");
   };
 
   const formatPhone = (text: string) => {
@@ -469,6 +482,87 @@ export default function RegisterScreen() {
 
             </View>
           )}
+
+          {/* STEP 4: 드라이브 모드 자동 시작 설정 */}
+          {step === "자동 시작 설정" && (
+            <View style={styles.stepContent}>
+              <Text style={styles.stepTitle}>드라이브 모드{"\n"}자동 시작 설정</Text>
+              <Text style={styles.stepDesc}>
+                운전 시작을 자동으로 감지해 드립니다.{"\n"}
+                한 번만 설정하면 이후에는 자동으로 켜집니다.
+              </Text>
+
+              {/* GPS 자동 감지 */}
+              <View style={styles.driveOptionCard}>
+                <View style={styles.driveOptionHeader}>
+                  <View style={styles.driveOptionIconBg}>
+                    <Text style={styles.driveOptionIcon}>📍</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.driveOptionTitle}>GPS 자동 감지</Text>
+                    <Text style={styles.driveOptionDesc}>20km/h 이상 주행 감지 시 자동 시작</Text>
+                  </View>
+                  <Switch
+                    value={driveGpsEnabled}
+                    onValueChange={(v) => {
+                      if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setDriveGpsEnabled(v);
+                    }}
+                    trackColor={{ false: "#E2E8F0", true: "#38A169" }}
+                    thumbColor="#FFFFFF"
+                  />
+                </View>
+                {driveGpsEnabled && (
+                  <View style={styles.driveOptionBadge}>
+                    <Text style={styles.driveOptionBadgeText}>✅ 블루투스 없이도 자동 감지 · 배터리 절약 모드 포함</Text>
+                  </View>
+                )}
+              </View>
+
+              {/* 블루투스 자동 시작 */}
+              <View style={styles.driveOptionCard}>
+                <View style={styles.driveOptionHeader}>
+                  <View style={styles.driveOptionIconBg}>
+                    <Text style={styles.driveOptionIcon}>🔵</Text>
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.driveOptionTitle}>블루투스 자동 시작</Text>
+                    <Text style={styles.driveOptionDesc}>차량 블루투스 연결 시 자동 시작</Text>
+                  </View>
+                  <Switch
+                    value={driveBtEnabled}
+                    onValueChange={(v) => {
+                      if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                      setDriveBtEnabled(v);
+                    }}
+                    trackColor={{ false: "#E2E8F0", true: "#3182CE" }}
+                    thumbColor="#FFFFFF"
+                  />
+                </View>
+                {driveBtEnabled && (
+                  <View style={[styles.driveOptionBadge, { backgroundColor: "#EBF4FF" }]}>
+                    <Text style={[styles.driveOptionBadgeText, { color: "#2C5282" }]}>🔵 설정 완료 후 마이페이지에서 블루투스 기기를 등록하세요</Text>
+                  </View>
+                )}
+              </View>
+
+              {/* 안내 */}
+              <View style={styles.driveTipCard}>
+                <Text style={styles.driveTipTitle}>💡 두 방식 모두 켜두는 것을 추천해요</Text>
+                <Text style={styles.driveTipDesc}>
+                  블루투스 연결 시 블루투스 방식이 우선 작동하고,{"\n"}
+                  미연결 시 GPS 방식이 자동 대기합니다.
+                </Text>
+              </View>
+
+              <Pressable style={styles.skipBtn} onPress={async () => {
+                await AsyncStorage.setItem("onboardingDone", "true");
+                router.replace("/(tabs)");
+              }}>
+                <Text style={styles.skipBtnText}>나중에 설정하기</Text>
+              </Pressable>
+            </View>
+          )}
         </ScrollView>
 
         {/* 하단 버튼 — 보험 단계 confirm/detecting 에서는 숨김 */}
@@ -484,7 +578,7 @@ export default function RegisterScreen() {
               onPress={handleNext}
             >
               <Text style={styles.nextBtnText}>
-                {step === "보험 등록" ? "등록 완료 →" : "다음 →"}
+                {step === "자동 시작 설정" ? "시작하기 🚗" : step === "보험 등록" ? "등록 완료 →" : "다음 →"}
               </Text>
             </Pressable>
           </View>
@@ -1021,5 +1115,69 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "800",
     color: "#FFFFFF",
+  },
+
+  // 드라이브 모드 설정 단계
+  driveOptionCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  driveOptionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 16,
+  },
+  driveOptionIconBg: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: "#F7FAFC",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  driveOptionIcon: { fontSize: 20 },
+  driveOptionTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#1A2B4C",
+    marginBottom: 2,
+  },
+  driveOptionDesc: {
+    fontSize: 12,
+    color: "#718096",
+  },
+  driveOptionBadge: {
+    backgroundColor: "#F0FFF4",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#C6F6D5",
+  },
+  driveOptionBadgeText: {
+    fontSize: 12,
+    color: "#276749",
+    fontWeight: "600",
+  },
+  driveTipCard: {
+    backgroundColor: "#EBF4FF",
+    borderRadius: 12,
+    padding: 16,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: "#BEE3F8",
+  },
+  driveTipTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1A2B4C",
+  },
+  driveTipDesc: {
+    fontSize: 13,
+    color: "#2C5282",
+    lineHeight: 20,
   },
 });

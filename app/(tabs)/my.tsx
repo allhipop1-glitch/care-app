@@ -242,6 +242,7 @@ export default function MyScreen() {
             { icon: "flame.fill" as const, label: "안전운전 포인트", color: "#DD6B20", route: "/reward" },
             { icon: "shield.fill" as const, label: "보험료 절약 알리미", color: "#3182CE", route: "/insurance-save" },
             { icon: "car.fill" as const, label: "내 차량 관리", color: "#3182CE", route: "/vehicle-manage" },
+            { icon: "location.fill" as const, label: "드라이브 모드 자동 시작", color: "#38A169", route: "/drive-mode-settings" },
             { icon: "info.circle.fill" as const, label: "앱 정보", color: "#718096", route: null },
             { icon: "gear" as const, label: "고객센터", color: "#718096", route: null },
           ].map((item, idx, arr) => (

@@ -95,6 +95,7 @@ export default function RootLayout() {
             <Stack.Screen name="reward" />
             <Stack.Screen name="insurance-save" />
             <Stack.Screen name="register" options={{ animation: "slide_from_right" }} />
+            <Stack.Screen name="drive-mode-settings" options={{ animation: "slide_from_right" }} />
           </Stack>
           <StatusBar style="auto" />
         </QueryClientProvider>

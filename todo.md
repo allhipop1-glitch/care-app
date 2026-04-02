@@ -50,3 +50,9 @@
 - [x] 병원 포털 (/partner/hospital)
 - [x] 변호사 포털 (/partner/lawyer)
 - [x] 손해사정사 포털 (/partner/adjuster)
+
+## 드라이브 모드 자동 시작
+
+- [x] GPS 자동 감지 스토어(drive-mode-store.ts) 및 설정 화면 구현
+- [x] 블루투스 기기 등록 UI 구현 (설정 화면 내)
+- [x] 온보딩(register.tsx) 마지막 단계에 드라이브 모드 자동 시작 설정 단계 추가
