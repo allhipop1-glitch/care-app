@@ -61,6 +61,9 @@ const MAPPING = {
   "checkmark.shield.fill": "security",
   "ellipsis": "more-horiz",
   "minus.circle.fill": "remove-circle",
+  // Drive mode & parking
+  "p.square.fill": "local-parking",
+  "car.fill.badge.plus": "add-road",
 } as unknown as IconMapping;
 
 /**
