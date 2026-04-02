@@ -71,6 +71,89 @@ const EXPERT_CATEGORIES = [
   },
 ];
 
+// 보행자 사고 전용 증거 수집 단계
+const PEDESTRIAN_EVIDENCE_STEPS = [
+  {
+    step: 1,
+    title: "119 신고 확인",
+    desc: "부상자가 있다면 즉시 119에 신고하세요. 절대 이동시키지 마세요.",
+    icon: "cross.fill" as const,
+    color: "#E53E3E",
+    tips: ["부상자 이동 금지 (2차 부상 위험)", "119 신고 후 안내에 따르기", "의식·호흡 확인 후 심폐소생술 준비"],
+    urgent: true,
+  },
+  {
+    step: 2,
+    title: "부상 부위 사진 촬영",
+    desc: "부상 부위와 피해자 상태를 기록하세요. 치료비 산정의 근거가 됩니다.",
+    icon: "camera.fill" as const,
+    color: "#805AD5",
+    tips: ["부상 부위 클로즈업 촬영", "피해자 동의 하에 촬영", "혈흔·찰과상 등 외상 기록"],
+    urgent: false,
+  },
+  {
+    step: 3,
+    title: "현장 사진 촬영",
+    desc: "사고 현장(도로·인도·횡단보도 등)과 주변 환경을 기록하세요.",
+    icon: "location.fill" as const,
+    color: "#38A169",
+    tips: ["횡단보도·신호등 상태 촬영", "스키드마크·충돌 흔적 촬영", "주변 CCTV 위치 확인"],
+    urgent: false,
+  },
+  {
+    step: 4,
+    title: "목격자 & 경찰·보험 신고",
+    desc: "목격자 연락처 확보 후 112 신고와 보험사 접수를 완료하세요.",
+    icon: "shield.fill" as const,
+    color: "#DD6B20",
+    tips: ["목격자 이름·연락처 확보", "112 신고 (인피사고 필수)", "보험사 사고 접수"],
+    urgent: false,
+  },
+];
+
+// 보행자 사고 전용 전문가 카테고리
+const PEDESTRIAN_EXPERT_CATEGORIES = [
+  {
+    id: "hospital",
+    label: "병원",
+    icon: "cross.fill" as const,
+    color: "#E53E3E",
+    desc: "교통사고 전문 치료 · 진단서 발급",
+    priority: true,
+    partners: [
+      { name: "강남세브란스 정형외과", rating: 4.8, reviews: 521, distance: "1.5km", eta: "예약 가능", badge: "교통사고 전문" },
+      { name: "선릉 나누리병원", rating: 4.6, reviews: 287, distance: "2.3km", eta: "당일 진료", badge: "" },
+      { name: "강남 연세통증클리닉", rating: 4.7, reviews: 163, distance: "0.9km", eta: "즉시 방문 가능", badge: "빠른응답" },
+    ],
+  },
+  {
+    id: "lawyer",
+    label: "변호사",
+    icon: "shield.fill" as const,
+    color: "#805AD5",
+    desc: "합의금 산정 · 법률 상담 · 소송 지원",
+    priority: true,
+    partners: [
+      { name: "교통사고 전문 법률사무소", rating: 4.9, reviews: 156, distance: "온라인", eta: "무료 상담", badge: "교통사고 전문" },
+      { name: "강남 로앤파트너스", rating: 4.8, reviews: 203, distance: "온라인", eta: "당일 상담", badge: "" },
+      { name: "서초 한결법률사무소", rating: 4.7, reviews: 98, distance: "온라인", eta: "무료 상담", badge: "빠른응답" },
+    ],
+  },
+  {
+    id: "adjuster",
+    label: "손해사정사",
+    icon: "doc.text.fill" as const,
+    color: "#DD6B20",
+    desc: "치료비·합의금 적정 금액 산정",
+    priority: false,
+    partners: [
+      { name: "김민준 손해사정사", rating: 4.9, reviews: 234, distance: "온라인", eta: "무료 상담", badge: "교통사고 전문" },
+      { name: "이서연 손해사정사", rating: 4.8, reviews: 187, distance: "온라인", eta: "당일 상담", badge: "" },
+      { name: "박지훈 손해사정사", rating: 4.7, reviews: 142, distance: "온라인", eta: "무료 상담", badge: "빠른응답" },
+    ],
+  },
+];
+
 const ACCIDENT_TYPES = [
   { id: "rear", label: "추돌 사고", icon: "car.fill" as const, color: "#E53E3E" },
   { id: "side", label: "측면 충돌", icon: "car.2.fill" as const, color: "#DD6B20" },
@@ -127,6 +210,13 @@ export default function AccidentReportScreen() {
   const [policeReported, setPoliceReported] = useState(false);
   const [selectedInsurance, setSelectedInsurance] = useState<string | null>(null);
   const [insuranceCalled, setInsuranceCalled] = useState(false);
+  const [injuryLevel, setInjuryLevel] = useState<"severe" | "minor" | "unknown" | null>(null);
+  const [ambulanceCalled, setAmbulanceCalled] = useState(false);
+
+  // 보행자 사고 여부
+  const isPedestrian = selectedType === "pedestrian";
+  const activeEvidenceSteps = isPedestrian ? PEDESTRIAN_EVIDENCE_STEPS : EVIDENCE_STEPS;
+  const activeExpertCategories = isPedestrian ? PEDESTRIAN_EXPERT_CATEGORIES : EXPERT_CATEGORIES;
 
   // 등록된 보험사 자동 선택
   useEffect(() => {
@@ -183,7 +273,7 @@ export default function AccidentReportScreen() {
     if (!completedEvidence.includes(stepIdx)) {
       setCompletedEvidence([...completedEvidence, stepIdx]);
     }
-    if (stepIdx < EVIDENCE_STEPS.length - 1) {
+    if (stepIdx < activeEvidenceSteps.length - 1) {
       setEvidenceStep(stepIdx + 1);
     }
   };
@@ -318,27 +408,71 @@ export default function AccidentReportScreen() {
         {currentStep === "evidence" && (
           <View>
             <View style={styles.stepHeader}>
-              <Text style={styles.stepTitle}>증거를 확보하세요</Text>
+              <Text style={styles.stepTitle}>{isPedestrian ? "보행자 사고 조치" : "증거를 확보하세요"}</Text>
               <Text style={styles.stepDesc}>
-                각 단계를 완료하면 체크하세요. 증거 확보가 보상 금액을 결정합니다.
+                {isPedestrian
+                  ? "보행자 사고는 신속한 응급 조치가 중요합니다. 아래 순서대로 진행하세요."
+                  : "각 단계를 완료하면 체크하세요. 증거 확보가 보상 금액을 결정합니다."
+                }
               </Text>
             </View>
 
+            {/* 보행자 사고 긴급 배너 */}
+            {isPedestrian && (
+              <View style={styles.pedestrianUrgentBanner}>
+                <Text style={styles.pedestrianUrgentIcon}>🚨</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.pedestrianUrgentTitle}>부상자가 있다면 절대 이동시키지 마세요</Text>
+                  <Text style={styles.pedestrianUrgentDesc}>2차 부상 위험 · 119 먼저 신고 후 안내에 따르세요</Text>
+                </View>
+              </View>
+            )}
+
+            {/* 부상 정도 선택 (보행자 사고 전용) */}
+            {isPedestrian && !injuryLevel && (
+              <View style={styles.injuryLevelBox}>
+                <Text style={styles.injuryLevelTitle}>부상 정도를 선택하세요</Text>
+                <View style={styles.injuryLevelRow}>
+                  {([
+                    { id: "severe", label: "중상", color: "#E53E3E", icon: "🚨" },
+                    { id: "minor", label: "경상", color: "#DD6B20", icon: "⚠️" },
+                    { id: "unknown", label: "불명", color: "#718096", icon: "❓" },
+                  ] as const).map((level) => (
+                    <Pressable
+                      key={level.id}
+                      style={({ pressed }) => [
+                        styles.injuryLevelBtn,
+                        { borderColor: level.color },
+                        pressed && { opacity: 0.8 },
+                      ]}
+                      onPress={() => {
+                        if (Platform.OS !== "web") Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                        setInjuryLevel(level.id);
+                      }}
+                    >
+                      <Text style={styles.injuryLevelBtnIcon}>{level.icon}</Text>
+                      <Text style={[styles.injuryLevelBtnText, { color: level.color }]}>{level.label}</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              </View>
+            )}
+
             <View style={styles.evidenceProgress}>
               <Text style={styles.evidenceProgressText}>
-                {completedEvidence.length} / {EVIDENCE_STEPS.length} 완료
+                {completedEvidence.length} / {activeEvidenceSteps.length} 완료
               </Text>
               <View style={styles.evidenceProgressBar}>
                 <View
                   style={[
                     styles.evidenceProgressFill,
-                    { width: `${(completedEvidence.length / EVIDENCE_STEPS.length) * 100}%` },
+                    { width: `${(completedEvidence.length / activeEvidenceSteps.length) * 100}%` },
                   ]}
                 />
               </View>
             </View>
 
-            {EVIDENCE_STEPS.map((ev, idx) => {
+            {activeEvidenceSteps.map((ev, idx) => {
               const isCompleted = completedEvidence.includes(idx);
               const isActive = evidenceStep === idx;
               return (
@@ -534,7 +668,7 @@ export default function AccidentReportScreen() {
               onPress={handleFinish}
             >
               <Text style={styles.nextBtnText}>
-                {completedEvidence.length === EVIDENCE_STEPS.length ? "전문가 매칭 시작" : "일단 전문가 연결하기"}
+                {completedEvidence.length === activeEvidenceSteps.length ? "전문가 매칭 시작" : "일단 전문가 연결하기"}
               </Text>
               <IconSymbol name="arrow.right" size={18} color="#FFFFFF" />
             </Pressable>
@@ -546,12 +680,27 @@ export default function AccidentReportScreen() {
           <View>
             <View style={styles.stepHeader}>
               <Text style={styles.stepTitle}>전문가를 직접 선택하세요</Text>
-              <Text style={styles.stepDesc}>필요한 분야를 선택하고 원하는 전문가에게 연결하세요</Text>
+              <Text style={styles.stepDesc}>
+                {isPedestrian
+                  ? "병원·변호사·손해사정사를 우선 연결하세요. 치료와 합의금 산정이 중요합니다."
+                  : "필요한 분야를 선택하고 원하는 전문가에게 연결하세요"}
+              </Text>
             </View>
+
+            {/* 보행자 사고 우선 안내 배너 */}
+            {isPedestrian && (
+              <View style={[styles.pedestrianUrgentBanner, { borderColor: "#805AD5", backgroundColor: "#FAF5FF" }]}>
+                <Text style={styles.pedestrianUrgentIcon}>🏥</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.pedestrianUrgentTitle, { color: "#805AD5" }]}>병원 먼저 연결하세요</Text>
+                  <Text style={[styles.pedestrianUrgentDesc, { color: "#553C9A" }]}>치료 후 변호사·손해사정사와 합의금을 산정하는 순서를 권장합니다</Text>
+                </View>
+              </View>
+            )}
 
             {/* 카테고리 탭 */}
             <View style={styles.categoryTabs}>
-              {EXPERT_CATEGORIES.map((cat) => (
+              {activeExpertCategories.map((cat) => (
                 <Pressable
                   key={cat.id}
                   style={({ pressed }) => [
@@ -565,13 +714,18 @@ export default function AccidentReportScreen() {
                   <Text style={[styles.categoryTabText, selectedCategory === cat.id && { color: "#FFFFFF" }]}>
                     {cat.label}
                   </Text>
+                  {isPedestrian && (cat as typeof PEDESTRIAN_EXPERT_CATEGORIES[number]).priority && (
+                    <View style={[styles.pedestrianPriorityBadge, { marginLeft: 2 }]}>
+                      <Text style={{ fontSize: 9, fontWeight: "800", color: "#FFFFFF" }}>우선</Text>
+                    </View>
+                  )}
                 </Pressable>
               ))}
             </View>
 
             {/* 선택된 카테고리 설명 */}
             {selectedCategory && (() => {
-              const cat = EXPERT_CATEGORIES.find(c => c.id === selectedCategory)!;
+              const cat = activeExpertCategories.find(c => c.id === selectedCategory)!;
               return (
                 <View>
                   <Text style={[styles.categoryDesc, { color: cat.color }]}>{cat.desc}</Text>
@@ -618,7 +772,11 @@ export default function AccidentReportScreen() {
               <View style={styles.categoryEmptyBox}>
                 <IconSymbol name="person.fill" size={36} color="#CBD5E0" />
                 <Text style={styles.categoryEmptyText}>위에서 필요한 분야를 선택하세요</Text>
-                <Text style={styles.categoryEmptySubText}>공업사, 병원, 렌터카, 변호사 중 원하는 전문가를 직접 고를 수 있습니다</Text>
+                <Text style={styles.categoryEmptySubText}>
+                  {isPedestrian
+                    ? "병원(우선), 변호사(우선), 손해사정사 중 원하는 전문가를 직접 고를 수 있습니다"
+                    : "공업사, 병원, 렌터카, 변호사 중 원하는 전문가를 직접 고를 수 있습니다"}
+                </Text>
               </View>
             )}
 
@@ -1274,5 +1432,80 @@ const styles = StyleSheet.create({
     color: "#1A2B4C",
     textAlign: "center",
     letterSpacing: 1,
+  },
+  // 보행자 사고 전용 스타일
+  pedestrianUrgentBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: "#FFF5F5",
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: "#E53E3E",
+    padding: 14,
+    marginBottom: 16,
+  },
+  pedestrianUrgentIcon: {
+    fontSize: 24,
+  },
+  pedestrianUrgentTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#E53E3E",
+    marginBottom: 2,
+  },
+  pedestrianUrgentDesc: {
+    fontSize: 12,
+    color: "#C53030",
+    lineHeight: 18,
+  },
+  injuryLevelBox: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  injuryLevelTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#1A2B4C",
+    marginBottom: 12,
+  },
+  injuryLevelRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  injuryLevelBtn: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 2,
+    backgroundColor: "#FFFFFF",
+    gap: 6,
+  },
+  injuryLevelBtnIcon: {
+    fontSize: 22,
+  },
+  injuryLevelBtnText: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  pedestrianExpertHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 6,
+  },
+  pedestrianPriorityBadge: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    backgroundColor: "#E53E3E",
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
   },
 });
