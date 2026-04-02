@@ -54,20 +54,16 @@ export default function MyScreen() {
   const [switchingRole, setSwitchingRole] = useState(false);
   const devSwitchRole = trpc.auth.devSwitchRole.useMutation({
     onSuccess: async (data) => {
-      // 즉시 roleStore 업데이트 (탭바 즉시 갱신)
-      if (data?.role) {
-        roleStore.setRole(data.role);
-      }
-      // 모든 trpc 캐시 무효화 후 홈으로 이동
+      // DB 저장 완료 - roleStore는 이미 이전에 업데이트됨
+      // trpc 캐시 무효화로 다음 요청에서 최신 role 반영
       await utils.auth.me.invalidate();
-      await utils.invalidate();
       setSwitchingRole(false);
-      // 캐시 갱신 후 홈으로 이동
-      setTimeout(() => {
-        router.replace("/(tabs)" as never);
-      }, 300);
     },
-    onError: () => setSwitchingRole(false),
+    onError: (err) => {
+      // 실패 시 roleStore 롤백
+      console.error("Role switch failed:", err);
+      setSwitchingRole(false);
+    },
   });
 
   // 온보딩 등록 데이터
@@ -357,8 +353,13 @@ export default function MyScreen() {
                   pressed && { opacity: 0.75 },
                 ]}
                 onPress={() => {
-                  if (currentRole === item.role || switchingRole) return;
+                  if (switchingRole) return;
                   setSwitchingRole(true);
+                  // 즉시 roleStore 업데이트 → HomeScreen/탭바 즉시 전환
+                  roleStore.setRole(item.role);
+                  // 홈으로 먼저 이동
+                  router.replace("/(tabs)" as never);
+                  // 백그라운드에서 DB 업데이트
                   devSwitchRole.mutate({ role: item.role });
                 }}
               >
