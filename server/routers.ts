@@ -385,6 +385,18 @@ export const appRouter = router({
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+    // 개발용: 역할 전환 (DEV ONLY)
+    devSwitchRole: protectedProcedure
+      .input(z.object({ role: z.enum(["user", "partner", "admin"]) }))
+      .mutation(async ({ ctx, input }) => {
+        const { getDb } = await import("../server/db.js");
+        const { users } = await import("../drizzle/schema.js");
+        const { eq } = await import("drizzle-orm");
+        const db = await getDb();
+        if (!db) throw new Error("DB not available");
+        await db.update(users).set({ role: input.role }).where(eq(users.id, ctx.user!.id));
+        return { success: true, role: input.role };
+      }),
   }),
   accident: accidentRouter,
   partner: partnerRouter,

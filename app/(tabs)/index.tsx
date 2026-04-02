@@ -342,57 +342,60 @@ function UserHome() {
           </View>
         </View>
 
-        {/* 역할별 대시보드 진입 안내 카드 */}
+        {/* 더 많은 기능 - 맨 하단 */}
         <View style={styles.dashboardGuideSection}>
           <Text style={styles.dashboardGuideTitle}>🚀 더 많은 기능</Text>
-          <Pressable
-            style={({ pressed }) => [styles.dashboardGuideCard, { borderLeftColor: "#3182CE" }, pressed && { opacity: 0.85 }]}
-            onPress={() => router.push("/partner-register" as never)}
-          >
-            <View style={styles.dashboardGuideCardLeft}>
-              <View style={[styles.dashboardGuideIcon, { backgroundColor: "#EBF8FF" }]}>
-                <Text style={{ fontSize: 22 }}>🏢</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.dashboardGuideCardTitle}>업체 파트너 등록</Text>
-                <Text style={styles.dashboardGuideCardDesc}>공업사·렉카·병원·변호사 등 파트너로 등록하면 새 의뢰를 받을 수 있습니다</Text>
-              </View>
-            </View>
-            <Text style={styles.dashboardGuideArrow}>→</Text>
-          </Pressable>
-        </View>
-
-        {/* 내 차량 시세 카드 */}
-        <View style={[styles.carCard, { marginTop: 16 }]}>
-          <View style={styles.carCardTop}>
-            <View>
-              <Text style={styles.carCardLabel}>내 차량</Text>
-              <Text style={styles.carCardName}>현대 아반떼 CN7 (2022)</Text>
-              <Text style={styles.carCardPlate}>123가 4567</Text>
-            </View>
-            <View style={styles.carValueBox}>
-              <Text style={styles.carValueLabel}>예상 시세</Text>
-              <Text style={styles.carValueAmount}>1,850만원</Text>
-              <Text style={styles.carValueChange}>▼ 50만원 (지난달 대비)</Text>
-            </View>
-          </View>
-          <View style={styles.carCardDivider} />
-          <View style={styles.carCardBottom}>
-            <View style={styles.carStat}>
-              <IconSymbol name="shield.fill" size={14} color="#3182CE" />
-              <Text style={styles.carStatText}>보험 갱신 D-47</Text>
-            </View>
-            <View style={styles.carStat}>
-              <IconSymbol name="clock.fill" size={14} color="#38A169" />
-              <Text style={styles.carStatText}>사고 이력 없음</Text>
-            </View>
+          {[
+            {
+              icon: "🏢",
+              color: "#3182CE",
+              bg: "#EBF8FF",
+              title: "업체 파트너 등록",
+              desc: "공업사·렉카·병원·변호사 등 파트너로 등록하면 새 의뢰를 받을 수 있습니다",
+              route: "/partner-register",
+            },
+            {
+              icon: "🛡️",
+              color: "#38A169",
+              bg: "#F0FFF4",
+              title: "보험료 절약 알리미",
+              desc: "내 보험 갱신일을 등록하고 더 저렴한 보험을 추천받아 보세요",
+              route: "/insurance-save",
+            },
+            {
+              icon: "🏆",
+              color: "#DD6B20",
+              bg: "#FFFAF0",
+              title: "안전운전 포인트",
+              desc: "안전 운전 습관으로 포인트를 모아 혜택을 받아보세요",
+              route: "/reward",
+            },
+            {
+              icon: "📍",
+              color: "#805AD5",
+              bg: "#FAF5FF",
+              title: "드라이브 모드 자동 시작",
+              desc: "운전 시작 시 자동으로 드라이브 모드를 켜고 사고를 감지합니다",
+              route: "/drive-mode-settings",
+            },
+          ].map((item) => (
             <Pressable
-              style={({ pressed }) => [styles.carCardBtn, pressed && { opacity: 0.7 }]}
-              onPress={() => router.push("/(tabs)/my" as never)}
+              key={item.title}
+              style={({ pressed }) => [styles.dashboardGuideCard, { borderLeftColor: item.color }, pressed && { opacity: 0.85 }]}
+              onPress={() => router.push(item.route as never)}
             >
-              <Text style={styles.carCardBtnText}>상세보기</Text>
+              <View style={styles.dashboardGuideCardLeft}>
+                <View style={[styles.dashboardGuideIcon, { backgroundColor: item.bg }]}>
+                  <Text style={{ fontSize: 22 }}>{item.icon}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.dashboardGuideCardTitle}>{item.title}</Text>
+                  <Text style={styles.dashboardGuideCardDesc}>{item.desc}</Text>
+                </View>
+              </View>
+              <Text style={styles.dashboardGuideArrow}>→</Text>
             </Pressable>
-          </View>
+          ))}
         </View>
       </ScrollView>
     </ScreenContainer>
