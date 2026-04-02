@@ -39,6 +39,23 @@ export function PartnerHome() {
   const requestsQuery = trpc.partner.myRequests.useQuery();
   const statsQuery = trpc.partner.myStats.useQuery();
   const settlementQuery = trpc.settlement.monthly.useQuery();
+  const utils = trpc.useUtils();
+  const respondMutation = trpc.partner.respondMatching.useMutation({
+    onSuccess: () => {
+      utils.partner.myRequests.invalidate();
+      utils.partner.myStats.invalidate();
+    },
+  });
+  const [processingId, setProcessingId] = useState<number | null>(null);
+
+  const handleRespond = async (matchingId: number, action: "수락" | "거절") => {
+    setProcessingId(matchingId);
+    try {
+      await respondMutation.mutateAsync({ matchingId, action });
+    } finally {
+      setProcessingId(null);
+    }
+  };
 
   const profile = profileQuery.data;
   const requests = (requestsQuery.data ?? []) as any[];
@@ -286,9 +303,24 @@ export function PartnerHome() {
                           <Text style={styles.reqLocation}>📍 {accident.location ?? "위치 정보 없음"}</Text>
                           <Text style={styles.reqUser}>👤 {user.name ?? "사용자"}</Text>
                           <View style={styles.reqCardActions}>
-                            <View style={styles.reqAcceptHint}>
-                              <Text style={styles.reqAcceptHintText}>탭하여 수락/거절 처리</Text>
-                            </View>
+                            <Pressable
+                              style={({ pressed }) => [styles.inlineAcceptBtn, pressed && { opacity: 0.8 }]}
+                              onPress={() => handleRespond(matching.id, "수락")}
+                              disabled={processingId === matching.id}
+                            >
+                              {processingId === matching.id ? (
+                                <ActivityIndicator size="small" color="#fff" />
+                              ) : (
+                                <Text style={styles.inlineAcceptBtnText}>✓ 수락</Text>
+                              )}
+                            </Pressable>
+                            <Pressable
+                              style={({ pressed }) => [styles.inlineRejectBtn, pressed && { opacity: 0.8 }]}
+                              onPress={() => handleRespond(matching.id, "거절")}
+                              disabled={processingId === matching.id}
+                            >
+                              <Text style={styles.inlineRejectBtnText}>✕ 거절</Text>
+                            </Pressable>
                             <View style={styles.newBadge}>
                               <Text style={styles.newBadgeText}>NEW</Text>
                             </View>
@@ -515,4 +547,24 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   viewAllBtnText: { fontSize: 15, fontWeight: "700", color: "#FFFFFF" },
+  inlineAcceptBtn: {
+    backgroundColor: "#38A169",
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    minWidth: 60,
+    alignItems: "center",
+  },
+  inlineAcceptBtnText: { fontSize: 13, fontWeight: "700", color: "#FFFFFF" },
+  inlineRejectBtn: {
+    backgroundColor: "#FFF5F5",
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    minWidth: 60,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#FC8181",
+  },
+  inlineRejectBtnText: { fontSize: 13, fontWeight: "700", color: "#E53E3E" },
 });

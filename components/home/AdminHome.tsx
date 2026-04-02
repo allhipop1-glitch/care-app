@@ -43,6 +43,23 @@ export function AdminHome() {
   const statsQuery = trpc.admin.stats.useQuery();
   const accidentsQuery = trpc.admin.accidents.list.useQuery();
   const partnersQuery = trpc.admin.partners.list.useQuery();
+  const utils = trpc.useUtils();
+  const updateStatusMutation = trpc.admin.partners.updateStatus.useMutation({
+    onSuccess: () => {
+      utils.admin.partners.list.invalidate();
+      utils.admin.stats.invalidate();
+    },
+  });
+  const [processingId, setProcessingId] = useState<number | null>(null);
+
+  const handlePartnerStatus = async (id: number, status: "active" | "inactive") => {
+    setProcessingId(id);
+    try {
+      await updateStatusMutation.mutateAsync({ id, status });
+    } finally {
+      setProcessingId(null);
+    }
+  };
 
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<"overview" | "pending" | "accidents">("overview");
@@ -280,9 +297,24 @@ export function AdminHome() {
                     <Text style={styles.pendingName}>{p.name}</Text>
                     <Text style={styles.pendingPhone}>📞 {p.phone}</Text>
                     <View style={styles.pendingActions}>
-                      <View style={styles.pendingApproveHint}>
-                        <Text style={styles.pendingApproveHintText}>탭하여 관리자 대시보드에서 승인/거절</Text>
-                      </View>
+                      <Pressable
+                        style={({ pressed }) => [styles.approveBtn, pressed && { opacity: 0.8 }]}
+                        onPress={() => handlePartnerStatus(p.id, "active")}
+                        disabled={processingId === p.id}
+                      >
+                        {processingId === p.id ? (
+                          <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                          <Text style={styles.approveBtnText}>✓ 승인</Text>
+                        )}
+                      </Pressable>
+                      <Pressable
+                        style={({ pressed }) => [styles.rejectBtn, pressed && { opacity: 0.8 }]}
+                        onPress={() => handlePartnerStatus(p.id, "inactive")}
+                        disabled={processingId === p.id}
+                      >
+                        <Text style={styles.rejectBtnText}>✕ 거절</Text>
+                      </Pressable>
                       <View style={styles.pendingWaitBadge}>
                         <Text style={styles.pendingWaitText}>심사 중</Text>
                       </View>
@@ -599,4 +631,24 @@ const styles = StyleSheet.create({
   emptyIcon: { fontSize: 48 },
   emptyText: { fontSize: 15, fontWeight: "600", color: "#4A5568" },
   emptySubText: { fontSize: 13, color: "#A0AEC0" },
+  approveBtn: {
+    backgroundColor: "#38A169",
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    minWidth: 64,
+    alignItems: "center",
+  },
+  approveBtnText: { fontSize: 13, fontWeight: "700", color: "#FFFFFF" },
+  rejectBtn: {
+    backgroundColor: "#FFF5F5",
+    borderRadius: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    minWidth: 64,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#FC8181",
+  },
+  rejectBtnText: { fontSize: 13, fontWeight: "700", color: "#E53E3E" },
 });
