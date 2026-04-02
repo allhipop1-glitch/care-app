@@ -105,6 +105,13 @@ export async function updatePartnerStatus(id: number, status: "active" | "inacti
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.update(partners).set({ status }).where(eq(partners.id, id));
+
+  // 승인(active) 시 users.role = 'partner', 비활성화/대기(inactive/pending) 시 users.role = 'user'
+  const partnerRows = await db.select({ userId: partners.userId }).from(partners).where(eq(partners.id, id)).limit(1);
+  if (partnerRows.length > 0) {
+    const newRole = status === "active" ? "partner" : "user";
+    await db.update(users).set({ role: newRole }).where(eq(users.id, partnerRows[0].userId));
+  }
 }
 
 // ─── 사고 접수 ────────────────────────────────────────────────────────────────

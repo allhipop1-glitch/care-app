@@ -1,4 +1,4 @@
-import { ScrollView, Text, View, Pressable, StyleSheet, Image, Switch } from "react-native";
+import { ScrollView, Text, View, Pressable, StyleSheet, Image, Switch, ActivityIndicator } from "react-native";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
@@ -7,6 +7,9 @@ import { Platform } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { GuardianStore, Guardian } from "@/lib/guardian-store";
+import { trpc } from "@/lib/trpc";
+import { PartnerHome } from "@/components/home/PartnerHome";
+import { AdminHome } from "@/components/home/AdminHome";
 
 const DAILY_TIPS = [
   {
@@ -36,10 +39,11 @@ const today = new Date();
 const tipIndex = today.getDate() % DAILY_TIPS.length;
 const todayTip = DAILY_TIPS[tipIndex];
 
-export default function HomeScreen() {
+// ─── 일반 사용자 홈 컴포넌트 (훅을 최상단에 고정) ───────────────────────────────
+function UserHome() {
   const router = useRouter();
 
-  // ─── 캐쉬드라이브 상태 ────────────────────────────────────────────────────────
+  // ─── 캐쉬드라이브 상태 ────────────────────────────────────────────────────────────
   const [driveOn, setDriveOn] = useState(false);
   const [todayKm, setTodayKm] = useState(12.4);
   const [totalEarned, setTotalEarned] = useState(1284);
@@ -243,7 +247,7 @@ export default function HomeScreen() {
             위치 자동 감지 · AI 파손 분석 · 전문가 즉시 연결
           </Text>
 
-          {/* 119 / 112 원터치 버튼 — 슬림 인라인 스타일 */}
+          {/* 119 / 112 원터치 버튼 */}
           <View style={styles.emergencyCallRow}>
             <Pressable
               style={({ pressed }) => [
@@ -373,6 +377,54 @@ export default function HomeScreen() {
       </ScrollView>
     </ScreenContainer>
   );
+}
+
+// ─── 메인 HomeScreen: 역할 분기만 담당 ─────────────────────────────────────────
+export default function HomeScreen() {
+  const meQuery = trpc.auth.me.useQuery(undefined, { retry: false });
+  const userRole = meQuery.data?.role;
+
+  if (meQuery.isLoading) {
+    return (
+      <ScreenContainer containerClassName="bg-[#1A2B4C]">
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center", gap: 12 }}>
+          <ActivityIndicator color="#fff" size="large" />
+          <Text style={{ color: "rgba(255,255,255,0.7)", fontSize: 14 }}>로딩 중...</Text>
+        </View>
+      </ScreenContainer>
+    );
+  }
+
+  if (userRole === "partner") {
+    return (
+      <ScreenContainer containerClassName="bg-[#F7FAFC]">
+        <View style={styles.roleHeader}>
+          <Text style={styles.roleHeaderTitle}>파트너 홈</Text>
+          <View style={styles.roleBadge}>
+            <Text style={styles.roleBadgeText}>파트너</Text>
+          </View>
+        </View>
+        <PartnerHome />
+      </ScreenContainer>
+    );
+  }
+
+  if (userRole === "admin") {
+    return (
+      <ScreenContainer containerClassName="bg-[#F7FAFC]">
+        <View style={styles.roleHeader}>
+          <Text style={styles.roleHeaderTitle}>관리자 홈</Text>
+          <View style={[styles.roleBadge, styles.roleBadgeAdmin]}>
+            <Text style={styles.roleBadgeText}>관리자</Text>
+          </View>
+        </View>
+        <AdminHome />
+      </ScreenContainer>
+    );
+  }
+
+  // 일반 사용자 (user role 또는 미로그인)
+  return <UserHome />;
 }
 
 const styles = StyleSheet.create({
@@ -788,7 +840,7 @@ const styles = StyleSheet.create({
     color: "#718096",
     flex: 1,
   },
-  // ─── 가디언 위젯 ─────────────────────────────────────────────────────────────────────────────
+  // ─── 가디언 위젯 ─────────────────────────────────────────────────────────────────
   guardianWidget: {
     marginHorizontal: 16,
     marginBottom: 12,
@@ -912,5 +964,33 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: "#EDF2F7",
     marginHorizontal: 16,
+  },
+  // ─── 역할 헤더 ───────────────────────────────────────────────────────────────────
+  roleHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: "#1A2B4C",
+  },
+  roleHeaderTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
+  roleBadge: {
+    backgroundColor: "#3182CE",
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+  },
+  roleBadgeAdmin: {
+    backgroundColor: "#805AD5",
+  },
+  roleBadgeText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
 });

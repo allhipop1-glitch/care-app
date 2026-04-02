@@ -6,6 +6,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { trpc } from "@/lib/trpc";
 
 const ACCIDENT_HISTORY = [
   {
@@ -39,6 +40,11 @@ export default function MyScreen() {
   const [dangerAlertOn, setDangerAlertOn] = useState(true);
   const [insuranceAlertOn, setInsuranceAlertOn] = useState(true);
   const [marketPriceOn, setMarketPriceOn] = useState(true);
+
+  // 파트너 신청 상태 조회
+  const partnerStatusQuery = trpc.partnerApply.myApplicationStatus.useQuery(undefined, {
+    retry: false,
+  });
 
   // 온보딩 등록 데이터
   const [userName, setUserName] = useState("");
@@ -111,6 +117,45 @@ export default function MyScreen() {
             <IconSymbol name="pencil" size={16} color="#3182CE" />
           </Pressable>
         </View>
+
+        {/* 파트너 신청 상태 배너 */}
+        {partnerStatusQuery.data && (
+          <Pressable
+            style={[
+              styles.partnerBanner,
+              partnerStatusQuery.data.status === "active" && styles.partnerBannerActive,
+              partnerStatusQuery.data.status === "inactive" && styles.partnerBannerInactive,
+            ]}
+            onPress={() => {
+              if (partnerStatusQuery.data?.status === "active") {
+                // 파트너 대시보드는 탭에서 직접 접근
+              }
+            }}
+          >
+            <Text style={styles.partnerBannerIcon}>
+              {partnerStatusQuery.data.status === "active" ? "✅" :
+               partnerStatusQuery.data.status === "pending" ? "⏳" : "❌"}
+            </Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.partnerBannerTitle}>
+                {partnerStatusQuery.data.status === "active"
+                  ? `파트너 업체 승인 완료`
+                  : partnerStatusQuery.data.status === "pending"
+                  ? `파트너 신청 심사 중`
+                  : `파트너 신청 거절`}
+              </Text>
+              <Text style={styles.partnerBannerSub}>
+                {partnerStatusQuery.data.name} · {partnerStatusQuery.data.category}
+                {partnerStatusQuery.data.status === "pending" && " · 관리자 승인 대기 중"}
+                {partnerStatusQuery.data.status === "active" && " · 업체 포털 탭에서 확인"}
+                {partnerStatusQuery.data.status === "inactive" && " · 다시 신청하려면 관리자에 문의"}
+              </Text>
+            </View>
+            {partnerStatusQuery.data.status === "active" && (
+              <Text style={{ fontSize: 16, color: "#38A169" }}>›</Text>
+            )}
+          </Pressable>
+        )}
 
         {/* 내 차량 */}
         <View style={styles.section}>
@@ -530,4 +575,27 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#CBD5E0",
   },
+  partnerBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 16,
+    marginBottom: 12,
+    borderRadius: 12,
+    padding: 14,
+    gap: 12,
+    backgroundColor: "#FFFBEB",
+    borderWidth: 1,
+    borderColor: "#F6AD55",
+  },
+  partnerBannerActive: {
+    backgroundColor: "#F0FFF4",
+    borderColor: "#68D391",
+  },
+  partnerBannerInactive: {
+    backgroundColor: "#FFF5F5",
+    borderColor: "#FC8181",
+  },
+  partnerBannerIcon: { fontSize: 24 },
+  partnerBannerTitle: { fontSize: 14, fontWeight: "700", color: "#1A202C" },
+  partnerBannerSub: { fontSize: 12, color: "#718096", marginTop: 2 },
 });
