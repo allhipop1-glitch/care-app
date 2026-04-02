@@ -64,6 +64,17 @@ const MAPPING = {
   // Drive mode & parking
   "p.square.fill": "local-parking",
   "car.fill.badge.plus": "add-road",
+  // Partner & Admin dashboard
+  "building.2.fill": "business",
+  "chart.bar.fill": "bar-chart",
+  "list.bullet.clipboard.fill": "assignment",
+  "person.3.fill": "groups",
+  "checkmark.seal.fill": "verified",
+  "xmark.seal.fill": "cancel",
+  "banknote.fill": "payments",
+  "arrow.clockwise": "refresh",
+  "eye.fill": "visibility",
+  "square.grid.2x2.fill": "dashboard",
 } as unknown as IconMapping;
 
 /**
