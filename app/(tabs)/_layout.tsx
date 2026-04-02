@@ -5,7 +5,7 @@ import { Platform } from "react-native";
 import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
-import { trpc } from "@/lib/trpc";
+import { useRole } from "@/hooks/use-role";
 
 export default function TabLayout() {
   const colors = useColors();
@@ -13,12 +13,8 @@ export default function TabLayout() {
   const bottomPadding = Platform.OS === "web" ? 12 : Math.max(insets.bottom, 8);
   const tabBarHeight = 56 + bottomPadding;
 
-  // 서버에서 현재 사용자 역할 조회
-  const meQuery = trpc.auth.me.useQuery();
-  const userRole = meQuery.data?.role ?? "user";
-
-  const isAdmin = userRole === "admin";
-  const isPartner = userRole === "partner";
+  // 역할 전환 시 즉시 갱신되는 역할 후크
+  const { isAdmin, isPartner } = useRole();
 
   return (
     <Tabs

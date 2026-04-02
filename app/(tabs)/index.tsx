@@ -10,6 +10,7 @@ import { GuardianStore, Guardian } from "@/lib/guardian-store";
 import { trpc } from "@/lib/trpc";
 import { PartnerHome } from "@/components/home/PartnerHome";
 import { AdminHome } from "@/components/home/AdminHome";
+import { useRole } from "@/hooks/use-role";
 
 const DAILY_TIPS = [
   {
@@ -404,10 +405,10 @@ function UserHome() {
 
 // ─── 메인 HomeScreen: 역할 분기만 담당 ─────────────────────────────────────────
 export default function HomeScreen() {
-  const meQuery = trpc.auth.me.useQuery(undefined, { retry: false, staleTime: 0 });
-  const userRole = meQuery.data?.role;
+  // roleStore 구독 - 역할 전환 시 즉시 리렌더링
+  const { role: userRole, isLoading } = useRole();
 
-  if (meQuery.isLoading) {
+  if (isLoading && !userRole) {
     return (
       <ScreenContainer containerClassName="bg-[#1A2B4C]">
         <View style={{ flex: 1, justifyContent: "center", alignItems: "center", gap: 12 }}>

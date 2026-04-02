@@ -7,6 +7,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { trpc } from "@/lib/trpc";
+import { roleStore } from "@/lib/role-store";
 
 const ACCIDENT_HISTORY = [
   {
@@ -52,7 +53,11 @@ export default function MyScreen() {
   const currentRole = meQuery.data?.role ?? "user";
   const [switchingRole, setSwitchingRole] = useState(false);
   const devSwitchRole = trpc.auth.devSwitchRole.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (data) => {
+      // 즉시 roleStore 업데이트 (탭바 즉시 갱신)
+      if (data?.role) {
+        roleStore.setRole(data.role);
+      }
       // 모든 trpc 캐시 무효화 후 홈으로 이동
       await utils.auth.me.invalidate();
       await utils.invalidate();
