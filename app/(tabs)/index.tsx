@@ -404,7 +404,7 @@ function UserHome() {
 
 // ─── 메인 HomeScreen: 역할 분기만 담당 ─────────────────────────────────────────
 export default function HomeScreen() {
-  const meQuery = trpc.auth.me.useQuery(undefined, { retry: false });
+  const meQuery = trpc.auth.me.useQuery(undefined, { retry: false, staleTime: 0 });
   const userRole = meQuery.data?.role;
 
   if (meQuery.isLoading) {

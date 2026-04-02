@@ -48,14 +48,19 @@ export default function MyScreen() {
 
   // 현재 로그인 사용자 역할 조회
   const meQuery = trpc.auth.me.useQuery(undefined, { retry: false });
+  const utils = trpc.useUtils();
   const currentRole = meQuery.data?.role ?? "user";
   const [switchingRole, setSwitchingRole] = useState(false);
   const devSwitchRole = trpc.auth.devSwitchRole.useMutation({
-    onSuccess: () => {
-      meQuery.refetch();
+    onSuccess: async () => {
+      // 모든 trpc 캐시 무효화 후 홈으로 이동
+      await utils.auth.me.invalidate();
+      await utils.invalidate();
       setSwitchingRole(false);
-      // 홈으로 이동해서 역할 변경 반영
-      router.replace("/(tabs)" as never);
+      // 캐시 갱신 후 홈으로 이동
+      setTimeout(() => {
+        router.replace("/(tabs)" as never);
+      }, 300);
     },
     onError: () => setSwitchingRole(false),
   });
