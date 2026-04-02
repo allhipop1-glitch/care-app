@@ -342,6 +342,26 @@ function UserHome() {
           </View>
         </View>
 
+        {/* 역할별 대시보드 진입 안내 카드 */}
+        <View style={styles.dashboardGuideSection}>
+          <Text style={styles.dashboardGuideTitle}>🚀 더 많은 기능</Text>
+          <Pressable
+            style={({ pressed }) => [styles.dashboardGuideCard, { borderLeftColor: "#3182CE" }, pressed && { opacity: 0.85 }]}
+            onPress={() => router.push("/partner-register" as never)}
+          >
+            <View style={styles.dashboardGuideCardLeft}>
+              <View style={[styles.dashboardGuideIcon, { backgroundColor: "#EBF8FF" }]}>
+                <Text style={{ fontSize: 22 }}>🏢</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.dashboardGuideCardTitle}>업체 파트너 등록</Text>
+                <Text style={styles.dashboardGuideCardDesc}>공업사·렉카·병원·변호사 등 파트너로 등록하면 새 의뢰를 받을 수 있습니다</Text>
+              </View>
+            </View>
+            <Text style={styles.dashboardGuideArrow}>→</Text>
+          </Pressable>
+        </View>
+
         {/* 내 차량 시세 카드 */}
         <View style={[styles.carCard, { marginTop: 16 }]}>
           <View style={styles.carCardTop}>
@@ -992,5 +1012,59 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     color: "#FFFFFF",
+  },
+  // 대시보드 진입 안내 카드
+  dashboardGuideSection: {
+    marginHorizontal: 16,
+    marginTop: 16,
+    gap: 10,
+  },
+  dashboardGuideTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#1A202C",
+  },
+  dashboardGuideCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    padding: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderLeftWidth: 4,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  dashboardGuideCardLeft: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  dashboardGuideIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dashboardGuideCardTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1A202C",
+    marginBottom: 2,
+  },
+  dashboardGuideCardDesc: {
+    fontSize: 12,
+    color: "#718096",
+    lineHeight: 17,
+  },
+  dashboardGuideArrow: {
+    fontSize: 18,
+    color: "#A0AEC0",
+    fontWeight: "700",
   },
 });

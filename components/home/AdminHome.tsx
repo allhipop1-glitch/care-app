@@ -56,6 +56,28 @@ export function AdminHome() {
         </Pressable>
       </View>
 
+      {/* 관리자 대시보드 진입 대형 카드 */}
+      <Pressable
+        style={({ pressed }) => [styles.adminEntryCard, pressed && { opacity: 0.9 }]}
+        onPress={() => router.push("/(tabs)/admin-dashboard" as never)}
+      >
+        <View style={styles.adminEntryLeft}>
+          <Text style={styles.adminEntryIcon}>🛡️</Text>
+          <View>
+            <Text style={styles.adminEntryTitle}>관리자 대시보드</Text>
+            <Text style={styles.adminEntryDesc}>사고 관리 · 파트너 승인 · 전체 통계</Text>
+          </View>
+        </View>
+        <View style={styles.adminEntryRight}>
+          {pendingPartners.length > 0 && (
+            <View style={styles.adminEntryAlert}>
+              <Text style={styles.adminEntryAlertText}>승인 대기 {pendingPartners.length}건</Text>
+            </View>
+          )}
+          <Text style={styles.adminEntryArrow}>›</Text>
+        </View>
+      </Pressable>
+
       {/* 핵심 지표 */}
       <View style={styles.metricsGrid}>
         {[
@@ -305,4 +327,50 @@ const styles = StyleSheet.create({
   },
   quickMenuIcon: { fontSize: 24 },
   quickMenuLabel: { fontSize: 12, fontWeight: "600", color: "#4A5568" },
+  // 관리자 대시보드 진입 카드
+  adminEntryCard: {
+    backgroundColor: "#1A2B4C",
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  adminEntryLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  adminEntryIcon: { fontSize: 28 },
+  adminEntryTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    marginBottom: 2,
+  },
+  adminEntryDesc: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.7)",
+  },
+  adminEntryRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  adminEntryAlert: {
+    backgroundColor: "#E53E3E",
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  adminEntryAlertText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  adminEntryArrow: {
+    fontSize: 28,
+    color: "rgba(255,255,255,0.6)",
+    fontWeight: "300",
+  },
 });

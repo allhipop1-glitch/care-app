@@ -69,6 +69,28 @@ export function PartnerHome() {
         </View>
       </View>
 
+      {/* 업체 포털 대시보드 진입 대형 카드 */}
+      <Pressable
+        style={({ pressed }) => [styles.dashboardEntryCard, pressed && { opacity: 0.9 }]}
+        onPress={() => router.push("/(tabs)/partner-dashboard" as never)}
+      >
+        <View style={styles.dashboardEntryLeft}>
+          <Text style={styles.dashboardEntryIcon}>🏢</Text>
+          <View>
+            <Text style={styles.dashboardEntryTitle}>업체 포털 대시보드</Text>
+            <Text style={styles.dashboardEntryDesc}>요청 관리 · 수락/거절 · 완료 처리</Text>
+          </View>
+        </View>
+        <View style={styles.dashboardEntryBadge}>
+          {pendingCount > 0 && (
+            <View style={styles.dashboardEntryBadgeDot}>
+              <Text style={styles.dashboardEntryBadgeNum}>{pendingCount}</Text>
+            </View>
+          )}
+          <Text style={styles.dashboardEntryArrow}>›</Text>
+        </View>
+      </Pressable>
+
       {/* 오늘 요청 현황 */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>📋 오늘 요청 현황</Text>
@@ -281,4 +303,53 @@ const styles = StyleSheet.create({
   },
   quickMenuIcon: { fontSize: 24 },
   quickMenuLabel: { fontSize: 12, fontWeight: "600", color: "#4A5568" },
+  // 대시보드 진입 카드
+  dashboardEntryCard: {
+    backgroundColor: "#1A2B4C",
+    borderRadius: 16,
+    padding: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  dashboardEntryLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  dashboardEntryIcon: { fontSize: 28 },
+  dashboardEntryTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    marginBottom: 2,
+  },
+  dashboardEntryDesc: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.7)",
+  },
+  dashboardEntryBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  dashboardEntryBadgeDot: {
+    backgroundColor: "#E53E3E",
+    borderRadius: 12,
+    minWidth: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 6,
+  },
+  dashboardEntryBadgeNum: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
+  dashboardEntryArrow: {
+    fontSize: 28,
+    color: "rgba(255,255,255,0.6)",
+    fontWeight: "300",
+  },
 });
