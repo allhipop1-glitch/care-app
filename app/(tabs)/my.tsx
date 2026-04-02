@@ -46,6 +46,20 @@ export default function MyScreen() {
     retry: false,
   });
 
+  // 현재 로그인 사용자 역할 조회
+  const meQuery = trpc.auth.me.useQuery(undefined, { retry: false });
+  const currentRole = meQuery.data?.role ?? "user";
+  const [switchingRole, setSwitchingRole] = useState(false);
+  const devSwitchRole = trpc.auth.devSwitchRole.useMutation({
+    onSuccess: () => {
+      meQuery.refetch();
+      setSwitchingRole(false);
+      // 홈으로 이동해서 역할 변경 반영
+      router.replace("/(tabs)" as never);
+    },
+    onError: () => setSwitchingRole(false),
+  });
+
   // 온보딩 등록 데이터
   const [userName, setUserName] = useState("");
   const [plateNumber, setPlateNumber] = useState("");
@@ -308,6 +322,50 @@ export default function MyScreen() {
               <IconSymbol name="chevron.right" size={16} color="#CBD5E0" />
             </Pressable>
           ))}
+        </View>
+
+        {/* 개발용 역할 전환 */}
+        <View style={styles.devRoleSection}>
+          <View style={styles.devRoleHeader}>
+            <Text style={styles.devRoleTitle}>🛠️ 개발용 역할 전환</Text>
+            <View style={styles.devRoleBadge}>
+              <Text style={styles.devRoleBadgeText}>DEV ONLY</Text>
+            </View>
+          </View>
+          <Text style={styles.devRoleDesc}>현재 역할: <Text style={{ fontWeight: "700", color: "#1A2B4C" }}>{currentRole === "admin" ? "관리자" : currentRole === "partner" ? "파트너" : "일반 사용자"}</Text></Text>
+          <View style={styles.devRoleBtnRow}>
+            {([
+              { role: "user" as const, label: "일반 사용자", icon: "👤", color: "#3182CE" },
+              { role: "partner" as const, label: "파트너", icon: "🏢", color: "#38A169" },
+              { role: "admin" as const, label: "관리자", icon: "🛡️", color: "#805AD5" },
+            ] as const).map((item) => (
+              <Pressable
+                key={item.role}
+                style={({ pressed }) => [
+                  styles.devRoleBtn,
+                  currentRole === item.role && { borderColor: item.color, backgroundColor: item.color + "15" },
+                  pressed && { opacity: 0.75 },
+                ]}
+                onPress={() => {
+                  if (currentRole === item.role || switchingRole) return;
+                  setSwitchingRole(true);
+                  devSwitchRole.mutate({ role: item.role });
+                }}
+              >
+                <Text style={{ fontSize: 20 }}>{item.icon}</Text>
+                <Text style={[
+                  styles.devRoleBtnLabel,
+                  currentRole === item.role && { color: item.color, fontWeight: "700" },
+                ]}>{item.label}</Text>
+                {currentRole === item.role && (
+                  <View style={[styles.devRoleActiveDot, { backgroundColor: item.color }]} />
+                )}
+              </Pressable>
+            ))}
+          </View>
+          {switchingRole && (
+            <Text style={styles.devRoleSwitching}>⏳ 역할 전환 중...</Text>
+          )}
         </View>
 
         <View style={styles.versionBox}>
@@ -598,4 +656,70 @@ const styles = StyleSheet.create({
   partnerBannerIcon: { fontSize: 24 },
   partnerBannerTitle: { fontSize: 14, fontWeight: "700", color: "#1A202C" },
   partnerBannerSub: { fontSize: 12, color: "#718096", marginTop: 2 },
+  // 개발용 역할 전환
+  devRoleSection: {
+    marginHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: "#1A2B4C",
+    borderRadius: 16,
+    padding: 16,
+    gap: 10,
+  },
+  devRoleHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  devRoleTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  devRoleBadge: {
+    backgroundColor: "rgba(255,255,255,0.15)",
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  devRoleBadgeText: {
+    fontSize: 10,
+    fontWeight: "800",
+    color: "rgba(255,255,255,0.8)",
+    letterSpacing: 1,
+  },
+  devRoleDesc: {
+    fontSize: 13,
+    color: "rgba(255,255,255,0.7)",
+  },
+  devRoleBtnRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  devRoleBtn: {
+    flex: 1,
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderRadius: 12,
+    padding: 12,
+    alignItems: "center",
+    gap: 6,
+    borderWidth: 1.5,
+    borderColor: "rgba(255,255,255,0.15)",
+    position: "relative",
+  },
+  devRoleBtnLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "rgba(255,255,255,0.8)",
+    textAlign: "center",
+  },
+  devRoleActiveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  devRoleSwitching: {
+    fontSize: 12,
+    color: "rgba(255,255,255,0.6)",
+    textAlign: "center",
+  },
 });
